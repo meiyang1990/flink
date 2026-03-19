@@ -24,6 +24,10 @@ import org.apache.flink.api.common.typeutils.TypeComparatorFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.InstantiationUtil;
 
+/**
+ * 运行时按配置创建 `TypeComparator` 的工厂。
+ */
+
 @Internal
 public final class RuntimeComparatorFactory<T>
         implements TypeComparatorFactory<T>, java.io.Serializable {

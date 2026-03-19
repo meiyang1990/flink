@@ -27,6 +27,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options for external resources and external resource drivers. */
 @PublicEvolving
+/**
+ * 定义 External Resource 相关配置项。
+ */
 public class ExternalResourceOptions {
 
     /**

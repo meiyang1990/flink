@@ -23,6 +23,10 @@ import org.apache.flink.api.common.typeutils.base.ShortComparator;
 
 import static java.lang.Math.min;
 
+/**
+ * 用于比较 `short` 原生数组的比较器。
+ */
+
 @Internal
 public class ShortPrimitiveArrayComparator
         extends PrimitiveArrayComparator<short[], ShortComparator> {

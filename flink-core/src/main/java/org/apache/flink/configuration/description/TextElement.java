@@ -28,6 +28,9 @@ import java.util.EnumSet;
 import java.util.List;
 
 /** Represents a text block in the {@link Description}. */
+/**
+ * 表示普通文本及其样式信息的说明元素。
+ */
 @PublicEvolving
 public class TextElement implements BlockElement, InlineElement {
     private final String format;

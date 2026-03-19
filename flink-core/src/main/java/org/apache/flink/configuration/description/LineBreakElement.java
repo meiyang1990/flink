@@ -21,6 +21,9 @@ package org.apache.flink.configuration.description;
 import org.apache.flink.annotation.PublicEvolving;
 
 /** Represents a line break in the {@link Description}. */
+/**
+ * 表示配置说明中的换行元素。
+ */
 @PublicEvolving
 public class LineBreakElement implements InlineElement, BlockElement {
 

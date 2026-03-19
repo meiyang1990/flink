@@ -21,6 +21,7 @@ package org.apache.flink.configuration.description;
 import java.util.EnumSet;
 
 /** Formatter that transforms {@link Description} into Html representation. */
+ * 将配置说明渲染为 HTML 字符串。
 public class HtmlFormatter extends Formatter {
 
     @Override

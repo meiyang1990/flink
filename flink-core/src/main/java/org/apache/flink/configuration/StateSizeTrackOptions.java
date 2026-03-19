@@ -23,6 +23,9 @@ import org.apache.flink.annotation.docs.Documentation;
 
 /** A collection of all configuration options that relate to the size tracking for state access. */
 @PublicEvolving
+/**
+ * 定义 State Size Track 相关配置项。
+ */
 public class StateSizeTrackOptions {
 
     @Documentation.Section(Documentation.Sections.STATE_SIZE_TRACKING)

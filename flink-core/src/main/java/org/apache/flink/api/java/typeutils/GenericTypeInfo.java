@@ -31,6 +31,10 @@ import org.apache.flink.api.java.typeutils.runtime.kryo.KryoSerializer;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * 描述通用 Java 类型的 `TypeInformation`，并通过 Kryo 提供序列化与比较能力。
+ */
+
 @Public
 public class GenericTypeInfo<T> extends TypeInformation<T> implements AtomicType<T> {
 
@@ -79,6 +83,10 @@ public class GenericTypeInfo<T> extends TypeInformation<T> implements AtomicType
         return Comparable.class.isAssignableFrom(typeClass);
     }
 
+    /**
+     * 为当前泛型类型创建基于 Kryo 的序列化器。
+     */
+
     @Override
     @PublicEvolving
     public TypeSerializer<T> createSerializer(SerializerConfig config) {
@@ -91,6 +99,10 @@ public class GenericTypeInfo<T> extends TypeInformation<T> implements AtomicType
 
         return new KryoSerializer<T>(this.typeClass, config);
     }
+
+    /**
+     * 在类型可比较时创建对应的运行时比较器。
+     */
 
     @SuppressWarnings("unchecked")
     @Override

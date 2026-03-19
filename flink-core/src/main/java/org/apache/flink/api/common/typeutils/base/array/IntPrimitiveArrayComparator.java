@@ -23,6 +23,10 @@ import org.apache.flink.api.common.typeutils.base.IntComparator;
 
 import static java.lang.Math.min;
 
+/**
+ * 用于比较 `int` 原生数组的比较器。
+ */
+
 @Internal
 public class IntPrimitiveArrayComparator extends PrimitiveArrayComparator<int[], IntComparator> {
     public IntPrimitiveArrayComparator(boolean ascending) {

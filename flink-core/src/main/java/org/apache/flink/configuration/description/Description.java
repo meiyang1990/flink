@@ -27,6 +27,9 @@ import java.util.List;
  * Description for {@link org.apache.flink.configuration.ConfigOption}. Allows providing multiple
  * rich formats.
  */
+/**
+ * 表示可渲染的配置说明文档。
+ */
 @PublicEvolving
 public class Description {
 

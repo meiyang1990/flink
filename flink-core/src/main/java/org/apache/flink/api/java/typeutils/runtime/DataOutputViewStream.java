@@ -24,6 +24,10 @@ import org.apache.flink.core.memory.DataOutputView;
 import java.io.IOException;
 import java.io.OutputStream;
 
+/**
+ * 将 `DataOutputView` 适配为 `OutputStream`，便于复用基于流的序列化逻辑。
+ */
+
 @Internal
 public class DataOutputViewStream extends OutputStream {
     protected DataOutputView outputView;

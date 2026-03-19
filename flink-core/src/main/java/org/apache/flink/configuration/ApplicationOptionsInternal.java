@@ -21,6 +21,7 @@ package org.apache.flink.configuration;
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Application options that are not meant to be used by the user. */
+ * 定义 Application 模式下使用的内部配置项。
 public class ApplicationOptionsInternal {
     public static final ConfigOption<String> FIXED_APPLICATION_ID =
             key("$internal.application.id")

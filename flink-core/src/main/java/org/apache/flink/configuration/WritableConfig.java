@@ -24,6 +24,9 @@ import org.apache.flink.annotation.PublicEvolving;
  * Write access to a configuration object. Allows storing values described with meta information
  * included in {@link ConfigOption}.
  */
+/**
+ * 定义按 `ConfigOption` 写入配置值的可写接口。
+ */
 @PublicEvolving
 public interface WritableConfig {
 

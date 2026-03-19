@@ -32,6 +32,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** The set of configuration options relating to high-availability settings. */
 @PublicEvolving
+/**
+ * 定义 High Availability 相关配置项。
+ */
 public class HighAvailabilityOptions {
 
     // ------------------------------------------------------------------------

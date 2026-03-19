@@ -20,8 +20,16 @@ package org.apache.flink.types;
 
 import org.apache.flink.annotation.PublicEvolving;
 
+/**
+ * 在 Java 装箱基础类型与 Flink Value 类型之间做双向转换。
+ */
+
 @PublicEvolving
 public class JavaToValueConverter {
+
+    /**
+     * 将 Java 装箱后的基础类型转换为对应的 Flink `Value` 实现。
+     */
 
     public static Value convertBoxedJavaType(Object boxed) {
         if (boxed == null) {
@@ -52,6 +60,10 @@ public class JavaToValueConverter {
             throw new IllegalArgumentException("Object is no primitive Java type.");
         }
     }
+
+    /**
+     * 将 Flink `Value` 类型还原为对应的 Java 基础对象。
+     */
 
     public static Object convertValueType(Value value) {
         if (value == null) {

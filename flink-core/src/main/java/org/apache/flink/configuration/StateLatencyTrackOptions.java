@@ -25,6 +25,9 @@ import org.apache.flink.annotation.docs.Documentation;
  * A collection of all configuration options that relate to the latency tracking for state access.
  */
 @PublicEvolving
+/**
+ * 定义 State Latency Track 相关配置项。
+ */
 public class StateLatencyTrackOptions {
 
     @Documentation.Section(Documentation.Sections.STATE_LATENCY_TRACKING)

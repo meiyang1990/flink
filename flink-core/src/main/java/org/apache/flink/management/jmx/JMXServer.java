@@ -44,6 +44,9 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p>https://github.com/j256/simplejmx/blob/master/src/main/java/com/j256/simplejmx/server/JmxServer.java
  */
+/**
+ * 可供外部 JMX 客户端连接的服务端实现。
+ */
 class JMXServer {
     private static final Logger LOG = LoggerFactory.getLogger(JMXServer.class);
 

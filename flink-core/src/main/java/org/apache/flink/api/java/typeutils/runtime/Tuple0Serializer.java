@@ -23,6 +23,10 @@ import org.apache.flink.util.Preconditions;
 
 import java.io.IOException;
 
+/**
+ * `Tuple0` 的序列化器实现。
+ */
+
 @Internal
 public class Tuple0Serializer extends TupleSerializer<Tuple0> {
 

@@ -26,6 +26,9 @@ import static org.apache.flink.configuration.description.TextElement.code;
 
 /** Configuration options for the BlobServer and BlobCache. */
 @PublicEvolving
+/**
+ * 定义 Blob Server 相关配置项。
+ */
 public class BlobServerOptions {
 
     /** The config parameter defining the storage directory to be used by the blob server. */

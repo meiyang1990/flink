@@ -31,6 +31,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
  * checkpoint.
  */
 @PublicEvolving
+/**
+ * 定义 State Recovery 相关配置项。
+ */
 public class StateRecoveryOptions {
 
     /** The path to a savepoint that will be used to bootstrap the pipeline's state. */

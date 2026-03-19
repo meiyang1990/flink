@@ -25,6 +25,10 @@ import org.apache.flink.core.memory.MemorySegment;
 import java.io.IOException;
 import java.util.Date;
 
+/**
+ * 用于比较 `Date` 值的比较器。
+ */
+
 @Internal
 public final class DateComparator extends BasicTypeComparator<Date> {
 

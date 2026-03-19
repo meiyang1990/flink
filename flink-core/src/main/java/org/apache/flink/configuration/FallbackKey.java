@@ -19,6 +19,7 @@
 package org.apache.flink.configuration;
 
 /** A key with FallbackKeys will fall back to the FallbackKeys if it itself is not configured. */
+ * 封装配置项的兼容键或废弃键信息。
 public class FallbackKey {
 
     // -------------------------

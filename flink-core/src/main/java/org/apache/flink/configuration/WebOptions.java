@@ -29,6 +29,9 @@ import static org.apache.flink.configuration.description.TextElement.code;
 
 /** Configuration options for the WebMonitorEndpoint. */
 @PublicEvolving
+/**
+ * 定义 Web 相关配置项。
+ */
 public class WebOptions {
 
     /**

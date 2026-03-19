@@ -35,6 +35,9 @@ import java.util.Map;
  * Global configuration object for Flink. Similar to Java properties configuration objects it
  * includes key-value pairs which represent the framework's configuration.
  */
+/**
+ * 负责从配置目录加载 Flink 全局配置并处理敏感信息。
+ */
 @Internal
 public final class GlobalConfiguration {
 
@@ -71,6 +74,7 @@ public final class GlobalConfiguration {
     // --------------------------------------------------------------------------------------------
 
     /**
+     * 从环境变量指定的配置目录加载全局配置。
      * Loads the global configuration from the environment. Fails if an error occurs during loading.
      * Returns an empty configuration object if the environment variable is not set. In production
      * this variable is set but tests and local execution/debugging don't have this environment
@@ -83,6 +87,7 @@ public final class GlobalConfiguration {
     }
 
     /**
+     * 加载全局配置，并叠加传入的动态配置项。
      * Loads the global configuration and adds the given dynamic properties configuration.
      *
      * @param dynamicProperties The given dynamic properties
@@ -98,6 +103,7 @@ public final class GlobalConfiguration {
     }
 
     /**
+     * 从指定目录读取 Flink 配置文件。
      * Loads the configuration files from the specified directory.
      *
      * <p>YAML files are supported as configuration files.
@@ -109,6 +115,7 @@ public final class GlobalConfiguration {
     }
 
     /**
+     * 从指定目录加载配置，并在最后合并动态配置。
      * Loads the configuration files from the specified directory. If the dynamic properties
      * configuration is not null, then it is added to the loaded configuration.
      *

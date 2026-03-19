@@ -22,6 +22,10 @@ import org.apache.flink.annotation.Internal;
 
 import java.io.Serializable;
 
+/**
+ * 基于两个 `TypeComparator` 实现异构记录键比较。
+ */
+
 @Internal
 public class GenericPairComparator<T1, T2> extends TypePairComparator<T1, T2>
         implements Serializable {

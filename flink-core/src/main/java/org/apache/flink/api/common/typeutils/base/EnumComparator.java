@@ -24,6 +24,10 @@ import org.apache.flink.core.memory.MemorySegment;
 
 import java.io.IOException;
 
+/**
+ * 用于比较枚举值的比较器。
+ */
+
 @Internal
 public final class EnumComparator<T extends Enum<T>> extends BasicTypeComparator<T> {
 

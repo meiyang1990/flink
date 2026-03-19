@@ -25,6 +25,10 @@ import org.apache.flink.core.memory.MemorySegment;
 import java.io.IOException;
 import java.time.LocalTime;
 
+/**
+ * 用于比较 `LocalTime` 值的比较器。
+ */
+
 @Internal
 public final class LocalTimeComparator extends BasicTypeComparator<LocalTime> {
 

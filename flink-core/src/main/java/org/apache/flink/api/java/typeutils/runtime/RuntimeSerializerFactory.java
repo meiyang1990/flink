@@ -24,6 +24,10 @@ import org.apache.flink.api.common.typeutils.TypeSerializerFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.InstantiationUtil;
 
+/**
+ * 运行时返回固定序列化器实例的工厂。
+ */
+
 @Internal
 public final class RuntimeSerializerFactory<T>
         implements TypeSerializerFactory<T>, java.io.Serializable {

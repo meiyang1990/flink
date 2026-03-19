@@ -24,6 +24,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options for the optimizer. */
 @PublicEvolving
+/**
+ * 定义 Optimizer 相关配置项。
+ */
 public class OptimizerOptions {
 
     /**

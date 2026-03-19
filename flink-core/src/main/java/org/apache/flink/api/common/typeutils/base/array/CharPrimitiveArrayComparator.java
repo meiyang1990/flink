@@ -23,6 +23,10 @@ import org.apache.flink.api.common.typeutils.base.CharComparator;
 
 import static java.lang.Math.min;
 
+/**
+ * 用于比较 `char` 原生数组的比较器。
+ */
+
 @Internal
 public class CharPrimitiveArrayComparator extends PrimitiveArrayComparator<char[], CharComparator> {
     public CharPrimitiveArrayComparator(boolean ascending) {

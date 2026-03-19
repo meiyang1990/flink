@@ -27,6 +27,9 @@ import java.time.Duration;
 
 /** The set of configuration options relating to the ResourceManager. */
 @PublicEvolving
+/**
+ * 定义 Resource Manager 相关配置项。
+ */
 public class ResourceManagerOptions {
 
     private static final String START_WORKER_RETRY_INTERVAL_KEY =

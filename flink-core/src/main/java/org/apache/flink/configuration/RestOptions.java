@@ -30,6 +30,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration parameters for REST communication. */
 @PublicEvolving
+/**
+ * 定义 Rest 相关配置项。
+ */
 public class RestOptions {
 
     private static final String REST_PORT_KEY = "rest.port";

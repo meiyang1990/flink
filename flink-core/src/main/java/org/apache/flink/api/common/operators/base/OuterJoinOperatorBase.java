@@ -48,9 +48,17 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * 外连接算子的集合执行实现，支持 LEFT、RIGHT 和 FULL 三种连接语义。
+ */
+
 @Internal
 public class OuterJoinOperatorBase<IN1, IN2, OUT, FT extends FlatJoinFunction<IN1, IN2, OUT>>
         extends JoinOperatorBase<IN1, IN2, OUT, FT> {
+
+    /**
+     * 定义外连接需要保留未匹配记录的一侧。
+     */
 
     public static enum OuterJoinType {
         LEFT,
@@ -100,6 +108,10 @@ public class OuterJoinOperatorBase<IN1, IN2, OUT, FT extends FlatJoinFunction<IN
     public OuterJoinType getOuterJoinType() {
         return outerJoinType;
     }
+
+    /**
+     * 在集合执行模式下完成外连接计算，并逐条调用用户定义的 Join 函数。
+     */
 
     @Override
     protected List<OUT> executeOnCollections(
@@ -160,6 +172,10 @@ public class OuterJoinOperatorBase<IN1, IN2, OUT, FT extends FlatJoinFunction<IN
         return result;
     }
 
+    /**
+     * 根据输入类型和连接键位置构造运行时比较器。
+     */
+
     @SuppressWarnings("unchecked")
     private <T> TypeComparator<T> buildComparatorFor(
             int input, ExecutionConfig executionConfig, TypeInformation<T> typeInformation) {
@@ -182,6 +198,10 @@ public class OuterJoinOperatorBase<IN1, IN2, OUT, FT extends FlatJoinFunction<IN
         }
         return comparator;
     }
+
+    /**
+     * 按外连接语义迭代左右分组，并产出需要传给 Join 函数的记录对。
+     */
 
     private static class OuterJoinListIterator<IN1, IN2> {
 

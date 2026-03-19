@@ -34,6 +34,9 @@ import static org.apache.flink.configuration.description.LinkElement.link;
 
 /** A collection of all configuration options that relate to checkpoints and savepoints. */
 @PublicEvolving
+/**
+ * 定义 Checkpointing 相关配置项。
+ */
 public class CheckpointingOptions {
 
     // ------------------------------------------------------------------------

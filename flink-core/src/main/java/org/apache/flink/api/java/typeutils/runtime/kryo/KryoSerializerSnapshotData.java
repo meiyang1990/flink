@@ -43,6 +43,10 @@ import static org.apache.flink.util.LinkedOptionalMapSerializer.readOptionalMap;
 import static org.apache.flink.util.LinkedOptionalMapSerializer.writeOptionalMap;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * 封装 `KryoSerializer` 快照中的类型、注册信息和默认序列化器配置。
+ */
+
 final class KryoSerializerSnapshotData<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(KryoSerializerSnapshotData.class);
@@ -63,6 +67,10 @@ final class KryoSerializerSnapshotData<T> {
                 optionalMapOf(defaultKryoSerializerClasses, Class::getName),
                 optionalMapOf(kryoRegistrations, Function.identity()));
     }
+
+    /**
+     * 从快照输入中恢复 Kryo 序列化配置及其关联类型信息。
+     */
 
     static <T> KryoSerializerSnapshotData<T> createFrom(DataInputView in, ClassLoader cl)
             throws IOException {
@@ -124,6 +132,10 @@ final class KryoSerializerSnapshotData<T> {
     // --------------------------------------------------------------------------------------------
     // Write
     // --------------------------------------------------------------------------------------------
+
+    /**
+     * 按固定顺序写出类型、注册信息和默认序列化器配置。
+     */
 
     void writeSnapshotData(DataOutputView out) throws IOException {
         writeTypeClass(out);
@@ -214,6 +226,10 @@ final class KryoSerializerSnapshotData<T> {
     // --------------------------------------------------------------------------------------------
     // Helpers
     // --------------------------------------------------------------------------------------------
+
+    /**
+     * 封装 Kryo 注册项的读写细节，统一处理不同序列化器定义方式。
+     */
 
     private static final class KryoRegistrationUtil {
 

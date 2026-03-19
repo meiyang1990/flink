@@ -26,6 +26,9 @@ import java.util.EnumSet;
  * Allows providing multiple formatters for the description. E.g. Html formatter, Markdown formatter
  * etc.
  */
+/**
+ * 将配置说明元素格式化为文本输出的抽象基类。
+ */
 @PublicEvolving
 public abstract class Formatter {
 

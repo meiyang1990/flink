@@ -33,6 +33,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration options for traces and trace reporters. */
 @Experimental
+/**
+ * 定义 Trace 相关配置项。
+ */
 public class TraceOptions {
 
     /** Enum for the detail level of checkpointing spans. */

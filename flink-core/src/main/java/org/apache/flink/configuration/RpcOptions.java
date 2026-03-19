@@ -29,6 +29,9 @@ import static org.apache.flink.configuration.description.TextElement.code;
 
 /** RPC configuration options. */
 @PublicEvolving
+/**
+ * 定义 Rpc 相关配置项。
+ */
 public class RpcOptions {
 
     @Internal

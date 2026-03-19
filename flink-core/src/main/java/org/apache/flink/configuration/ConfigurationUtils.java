@@ -43,11 +43,15 @@ import static org.apache.flink.configuration.MetricOptions.SYSTEM_RESOURCE_METRI
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /** Utility class for {@link Configuration} related helper functions. */
+/**
+ * 提供与 `Configuration` 相关的解析、转换和脱敏工具。
+ */
 public class ConfigurationUtils {
 
     private static final String[] EMPTY = new String[0];
 
     /**
+     * 在系统资源指标开启时返回对应的采样周期。
      * @return extracted {@link MetricOptions#SYSTEM_RESOURCE_METRICS_PROBING_INTERVAL} or {@code
      *     Optional.empty()} if {@link MetricOptions#SYSTEM_RESOURCE_METRICS} are disabled.
      */
@@ -109,6 +113,7 @@ public class ConfigurationUtils {
     }
 
     /**
+     * 将字符串形式的键值对解析为映射结构。
      * Parses a string as a map of strings. The expected format of the map to be parsed` by FLINK
      * parser is:
      *
@@ -176,6 +181,9 @@ public class ConfigurationUtils {
      *
      * @param keyValuePairs for which to hide sensitive values
      * @return A map where all sensitive value are hidden
+     */
+    /**
+     * 对敏感配置项的值做脱敏处理，便于安全输出。
      */
     @Nonnull
     public static Map<String, String> hideSensitiveValues(Map<String, String> keyValuePairs) {

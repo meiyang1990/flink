@@ -29,6 +29,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** The set of configuration options relating to heartbeat manager settings. */
 @PublicEvolving
+/**
+ * 定义 Heartbeat Manager 相关配置项。
+ */
 public class HeartbeatManagerOptions {
 
     /** Time interval for requesting heartbeat from sender side. */

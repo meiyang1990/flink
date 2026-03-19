@@ -26,6 +26,9 @@ import java.util.List;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * 将带引号和转义的结构化配置字符串拆分为独立片段。
+ */
 /** Helper class for splitting a string on a given delimiter with quoting logic. */
 @Internal
 class StructuredOptionsSplitter {

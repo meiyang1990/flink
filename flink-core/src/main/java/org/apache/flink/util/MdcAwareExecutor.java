@@ -24,6 +24,10 @@ import java.util.concurrent.Executor;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * 在执行任务时传播 MDC 上下文的 `Executor` 包装器。
+ */
+
 class MdcAwareExecutor<T extends Executor> implements Executor {
     protected final Map<String, String> contextData;
     protected final T delegate;

@@ -38,6 +38,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration options for the JobManager. */
 @PublicEvolving
+/**
+ * 定义 Job Manager 相关配置项。
+ */
 public class JobManagerOptions {
 
     public static final MemorySize MIN_JVM_HEAP_SIZE = MemorySize.ofMebiBytes(128);

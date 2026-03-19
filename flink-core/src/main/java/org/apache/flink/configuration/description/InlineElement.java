@@ -21,5 +21,8 @@ package org.apache.flink.configuration.description;
 import org.apache.flink.annotation.PublicEvolving;
 
 /** Part of description that represents an element inside a block e.g. a link. */
+/**
+ * 配置描述 DSL 中的行内元素接口。
+ */
 @PublicEvolving
 public interface InlineElement extends DescriptionElement {}

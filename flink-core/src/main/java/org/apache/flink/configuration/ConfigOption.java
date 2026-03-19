@@ -37,6 +37,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * @param <T> The type of value associated with the configuration option.
  */
+/**
+ * 描述单个配置项的键、类型、默认值以及回退键等元信息。
+ */
 @PublicEvolving
 public class ConfigOption<T> {
 
@@ -110,6 +113,7 @@ public class ConfigOption<T> {
     // ------------------------------------------------------------------------
 
     /**
+     * 基于当前配置项追加回退键，并保证这些键在读取时优先于已有兼容键被检查。
      * Creates a new config option, using this option's key and default value, and adding the given
      * fallback keys.
      *
@@ -134,6 +138,7 @@ public class ConfigOption<T> {
     }
 
     /**
+     * 基于当前配置项追加废弃键，用于兼容旧配置名称。
      * Creates a new config option, using this option's key and default value, and adding the given
      * deprecated keys.
      *
@@ -159,6 +164,7 @@ public class ConfigOption<T> {
     }
 
     /**
+     * 为配置项补充字符串形式的说明文档。
      * Creates a new config option, using this option's key and default value, and adding the given
      * description. The given description is used when generation the configuration documentation.
      *
@@ -170,6 +176,7 @@ public class ConfigOption<T> {
     }
 
     /**
+     * 为配置项补充结构化说明文档。
      * Creates a new config option, using this option's key and default value, and adding the given
      * description. The given description is used when generation the configuration documentation.
      *

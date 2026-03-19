@@ -37,6 +37,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** The set of configuration options relating to security. */
 @PublicEvolving
+/**
+ * 定义 Security 相关配置项。
+ */
 public class SecurityOptions {
 
     public static final String DELEGATION_TOKEN_PROVIDER_PREFIX =

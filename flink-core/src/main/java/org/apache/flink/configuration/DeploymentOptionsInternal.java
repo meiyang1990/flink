@@ -23,6 +23,9 @@ import org.apache.flink.annotation.Internal;
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Internal options used during deployment. */
+/**
+ * 定义部署流程内部使用的配置项。
+ */
 @Internal
 public class DeploymentOptionsInternal {
 

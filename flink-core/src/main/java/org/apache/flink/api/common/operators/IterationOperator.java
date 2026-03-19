@@ -21,6 +21,10 @@ package org.apache.flink.api.common.operators;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.aggregators.AggregatorRegistry;
 
+/**
+ * 迭代算子的公共接口，定义迭代输入与聚合器注册能力。
+ */
+
 @Internal
 public interface IterationOperator {
 

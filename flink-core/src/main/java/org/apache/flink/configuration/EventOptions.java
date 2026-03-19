@@ -33,6 +33,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration options for events and event reporters. */
 @Experimental
+/**
+ * 定义 Event 相关配置项。
+ */
 public class EventOptions {
 
     @Experimental

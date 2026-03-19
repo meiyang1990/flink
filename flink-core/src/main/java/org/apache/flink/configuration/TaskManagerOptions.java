@@ -36,6 +36,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 /** The set of configuration options relating to TaskManager and Task settings. */
 @PublicEvolving
 @ConfigGroups(groups = @ConfigGroup(name = "TaskManagerMemory", keyPrefix = "taskmanager.memory"))
+/**
+ * 定义 Task Manager 相关配置项。
+ */
 public class TaskManagerOptions {
 
     public static final String MANAGED_MEMORY_CONSUMER_NAME_OPERATOR = "OPERATOR";

@@ -25,6 +25,10 @@ import org.apache.flink.core.memory.DataOutputView;
 
 import java.io.IOException;
 
+/**
+ * 基础类型比较器的公共实现，封装引用值和标准比较流程。
+ */
+
 @Internal
 public abstract class BasicTypeComparator<T extends Comparable<T>> extends TypeComparator<T>
         implements java.io.Serializable {

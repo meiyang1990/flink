@@ -37,6 +37,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Configuration options for metrics and metric reporters. */
 @PublicEvolving
+/**
+ * 定义 Metric 相关配置项。
+ */
 public class MetricOptions {
 
     private static final String NAMED_REPORTER_CONFIG_PREFIX =

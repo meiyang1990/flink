@@ -28,6 +28,10 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * 为序列化器增加单线程访问断言，帮助发现并发误用。
+ */
+
 @Internal
 public class SingleThreadAccessCheckingTypeSerializer<T> extends TypeSerializer<T> {
     private static final long serialVersionUID = 131020282727167064L;
@@ -147,6 +151,10 @@ public class SingleThreadAccessCheckingTypeSerializer<T> extends TypeSerializer<
         }
     }
 
+    /**
+     * 该快照负责保存被包装序列化器的配置，并在恢复时重新包上一层并发访问检查。
+     */
+
     public static class SingleThreadAccessCheckingTypeSerializerSnapshot<T>
             extends CompositeTypeSerializerSnapshot<
                     T, SingleThreadAccessCheckingTypeSerializer<T>> {
@@ -187,6 +195,10 @@ public class SingleThreadAccessCheckingTypeSerializer<T> extends TypeSerializer<
         }
     }
 
+    /**
+     * 维护当前持有访问权的线程，用于检测序列化器是否被并发调用。
+     */
+
     private static class SingleThreadAccessChecker implements Serializable {
         private static final long serialVersionUID = 131020282727167064L;
 
@@ -204,6 +216,10 @@ public class SingleThreadAccessCheckingTypeSerializer<T> extends TypeSerializer<
             currentThreadRef = new AtomicReference<>();
         }
     }
+
+    /**
+     * 以作用域方式持有线程访问令牌，退出时自动释放。
+     */
 
     private static class SingleThreadAccessCheck implements AutoCloseable {
         private final AtomicReference<Thread> currentThreadRef;

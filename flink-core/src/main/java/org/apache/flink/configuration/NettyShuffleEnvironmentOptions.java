@@ -30,6 +30,9 @@ import static org.apache.flink.configuration.description.TextElement.code;
 
 /** The set of configuration options relating to network stack. */
 @PublicEvolving
+/**
+ * 定义 Netty Shuffle Environment 相关配置项。
+ */
 public class NettyShuffleEnvironmentOptions {
     private static final String HYBRID_SHUFFLE_REMOTE_STORAGE_BASE_PATH_OPTION_NAME =
             "taskmanager.network.hybrid-shuffle.remote.path";

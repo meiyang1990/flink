@@ -38,6 +38,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 public interface OutputTypeConfigurable<OUT> {
 
     /**
+     * 在生成 `StreamGraph` 时回调当前算子，以注入最终输出类型和执行配置。
      * Is called by the {@code org.apache.flink.streaming.api.graph.StreamGraph#addOperator(Integer,
      * String, StreamOperator, TypeInformation, TypeInformation, String)} method when the {@code
      * org.apache.flink.streaming.api.graph.StreamGraph} is generated. The method is called with the

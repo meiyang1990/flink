@@ -28,6 +28,10 @@ import java.io.IOException;
 
 import static java.lang.Math.min;
 
+/**
+ * 原生数组比较器的抽象基类，封装数组引用与通用比较逻辑。
+ */
+
 @Internal
 public abstract class PrimitiveArrayComparator<T, C extends BasicTypeComparator>
         extends TypeComparator<T> {

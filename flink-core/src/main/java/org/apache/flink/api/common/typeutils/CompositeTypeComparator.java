@@ -23,6 +23,10 @@ import org.apache.flink.annotation.PublicEvolving;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * 复合类型比较器的抽象基类，统一管理多个扁平字段比较器。
+ */
+
 @SuppressWarnings("rawtypes")
 @PublicEvolving
 public abstract class CompositeTypeComparator<T> extends TypeComparator<T> {

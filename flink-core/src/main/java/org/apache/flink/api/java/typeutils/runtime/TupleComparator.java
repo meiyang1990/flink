@@ -27,6 +27,10 @@ import org.apache.flink.types.KeyFieldOutOfBoundsException;
 import org.apache.flink.types.NullFieldException;
 import org.apache.flink.types.NullKeyFieldException;
 
+/**
+ * 用于按多个键字段比较 Tuple 记录的比较器。
+ */
+
 @Internal
 public final class TupleComparator<T extends Tuple> extends TupleComparatorBase<T> {
 

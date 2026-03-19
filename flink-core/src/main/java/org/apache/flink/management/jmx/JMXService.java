@@ -28,6 +28,9 @@ import java.util.Iterator;
 import java.util.Optional;
 
 /** Provide a JVM-wide singleton JMX Service. */
+/**
+ * 提供 JVM 级别的单例 JMX 服务入口。
+ */
 public class JMXService {
     private static final Logger LOG = LoggerFactory.getLogger(JMXService.class);
     private static JMXServer jmxServer = null;
@@ -38,6 +41,7 @@ public class JMXService {
     }
 
     /**
+     * 启动 JVM 范围内的单例 JMX 服务，并按端口配置依次尝试绑定。
      * Start the JMV-wide singleton JMX server.
      *
      * <p>If JMXServer static instance is already started, it will not be started again. Instead a
@@ -93,7 +97,4 @@ public class JMXService {
                     LOG.debug("Could not stop JMX server.", e);
                 }
             }
-        }
-        return successfullyStartedServer;
-    }
-}
+  

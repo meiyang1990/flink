@@ -66,6 +66,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *     .withDeprecatedKeys("cpu.threshold");
  * }</pre>
  */
+/**
+ * 提供用于构建 `ConfigOption` 的流式入口。
+ */
 @PublicEvolving
 public class ConfigOptions {
 

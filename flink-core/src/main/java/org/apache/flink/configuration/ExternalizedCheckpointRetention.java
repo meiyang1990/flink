@@ -26,6 +26,9 @@ import org.apache.flink.configuration.description.InlineElement;
 import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Cleanup behaviour for externalized checkpoints when the job is cancelled. */
+/**
+ * 定义外部化检查点在作业终止后的保留策略。
+ */
 @PublicEvolving
 public enum ExternalizedCheckpointRetention implements DescribedEnum {
 

@@ -23,6 +23,10 @@ import org.apache.flink.api.common.typeutils.base.DoubleComparator;
 
 import static java.lang.Math.min;
 
+/**
+ * 用于比较 `double` 原生数组的比较器。
+ */
+
 @Internal
 public class DoublePrimitiveArrayComparator
         extends PrimitiveArrayComparator<double[], DoubleComparator> {

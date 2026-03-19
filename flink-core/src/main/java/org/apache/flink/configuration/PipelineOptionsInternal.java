@@ -23,6 +23,9 @@ import org.apache.flink.annotation.Internal;
 import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Pipeline options that are not meant to be used by the user. */
+/**
+ * 定义 Pipeline 执行链路内部使用的配置项。
+ */
 @Internal
 public class PipelineOptionsInternal {
 

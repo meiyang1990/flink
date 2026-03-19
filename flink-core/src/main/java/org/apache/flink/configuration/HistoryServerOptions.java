@@ -29,6 +29,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** The set of configuration options relating to the HistoryServer. */
 @PublicEvolving
+/**
+ * 定义 History Server 相关配置项。
+ */
 public class HistoryServerOptions {
 
     /**

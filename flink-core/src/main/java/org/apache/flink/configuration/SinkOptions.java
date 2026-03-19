@@ -25,6 +25,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options for sinks. */
 @PublicEvolving
+/**
+ * 定义 Sink 相关配置项。
+ */
 public class SinkOptions {
     /**
      * The number of retries on a committable (e.g., transaction) before Flink application fails and

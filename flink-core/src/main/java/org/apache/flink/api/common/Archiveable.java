@@ -21,6 +21,10 @@ import org.apache.flink.annotation.Internal;
 
 import java.io.Serializable;
 
+/**
+ * 定义可归档对象与其归档结果之间的转换约定。
+ */
+
 @Internal
 public interface Archiveable<T extends Serializable> {
     T archive();

@@ -49,6 +49,9 @@ import static org.apache.flink.configuration.ConfigurationUtils.removePrefixMap;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Lightweight configuration object which stores key/value pairs. */
+/**
+ * 轻量级键值配置容器，负责配置项的读写、合并和序列化。
+ */
 @Public
 public class Configuration extends ExecutionConfig.GlobalJobParameters
         implements IOReadableWritable,
@@ -97,6 +100,7 @@ public class Configuration extends ExecutionConfig.GlobalJobParameters
     // --------------------------------------------------------------------------------------------
 
     /** Creates a new configuration that is initialized with the options of the given map. */
+     * 根据普通字符串映射创建 `Configuration` 实例。
     public static Configuration fromMap(Map<String, String> map) {
         final Configuration configuration = new Configuration();
         map.forEach(configuration::setString);
@@ -414,6 +418,9 @@ public class Configuration extends ExecutionConfig.GlobalJobParameters
      *
      * <p>This method ensures the value is properly escaped when writing the key-value pair to a
      * standard YAML file.
+     */
+    /**
+     * 将当前配置转换为适合写回文件的字符串映射，并补齐 YAML 转义。
      */
     @Internal
     public Map<String, String> toFileWritableMap() {

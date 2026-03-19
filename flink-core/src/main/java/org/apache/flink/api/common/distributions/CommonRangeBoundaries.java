@@ -20,6 +20,10 @@ package org.apache.flink.api.common.distributions;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.typeutils.TypeComparator;
 
+/**
+ * 根据采样边界为记录定位范围分区索引的通用实现。
+ */
+
 @Internal
 public class CommonRangeBoundaries<T> implements RangeBoundaries<T> {
     private final TypeComparator<T> typeComparator;
@@ -40,6 +44,10 @@ public class CommonRangeBoundaries<T> implements RangeBoundaries<T> {
     }
 
     // Search the range index of input record.
+    /**
+     * 使用二分查找定位记录应落入的范围分区。
+     */
+
     private int binarySearch(T record) {
         int low = 0;
         int high = this.boundaries.length - 1;
@@ -61,6 +69,10 @@ public class CommonRangeBoundaries<T> implements RangeBoundaries<T> {
         // bucket, since the boundaries are the upper bound
         return low;
     }
+
+    /**
+     * 按扁平化键顺序逐个比较记录键与边界键。
+     */
 
     private int compareKeys(TypeComparator[] flatComparators, Object[] keys, Object[] boundary) {
         if (flatComparators.length != keys.length || flatComparators.length != boundary.length) {

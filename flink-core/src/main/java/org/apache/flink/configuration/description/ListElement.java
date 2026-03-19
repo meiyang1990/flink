@@ -24,6 +24,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /** Represents a list in the {@link Description}. */
+/**
+ * 表示由多个说明元素组成的列表块。
+ */
 @PublicEvolving
 public class ListElement implements BlockElement {
 

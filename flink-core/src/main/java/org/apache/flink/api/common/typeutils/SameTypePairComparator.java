@@ -19,6 +19,10 @@ package org.apache.flink.api.common.typeutils;
 
 import org.apache.flink.annotation.Internal;
 
+/**
+ * 用于同类型左右记录之间键比较的 `PairComparator`。
+ */
+
 @Internal
 public class SameTypePairComparator<T> extends TypePairComparator<T, T> {
 

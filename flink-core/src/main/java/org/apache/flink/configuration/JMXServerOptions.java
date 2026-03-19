@@ -26,6 +26,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** The set of configuration options relating to JMX server. */
 @PublicEvolving
+/**
+ * 定义 J M X Server 相关配置项。
+ */
 public class JMXServerOptions {
 
     /** Port configured to enable JMX server for metrics and debugging. */

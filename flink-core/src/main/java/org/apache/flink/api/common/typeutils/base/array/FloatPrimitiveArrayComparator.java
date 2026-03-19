@@ -23,6 +23,10 @@ import org.apache.flink.api.common.typeutils.base.FloatComparator;
 
 import static java.lang.Math.min;
 
+/**
+ * 用于比较 `float` 原生数组的比较器。
+ */
+
 @Internal
 public class FloatPrimitiveArrayComparator
         extends PrimitiveArrayComparator<float[], FloatComparator> {

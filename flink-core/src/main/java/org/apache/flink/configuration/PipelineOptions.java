@@ -35,6 +35,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** The {@link ConfigOption configuration options} for job execution. */
 @PublicEvolving
+/**
+ * 定义 Pipeline 相关配置项。
+ */
 public class PipelineOptions {
 
     /** The job name used for printing and logging. */

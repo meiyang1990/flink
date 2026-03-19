@@ -27,6 +27,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options to detect slow tasks. */
 @PublicEvolving
+/**
+ * 定义 Slow Task Detector 相关配置项。
+ */
 public class SlowTaskDetectorOptions {
 
     @Documentation.Section(Documentation.Sections.EXPERT_SCHEDULING)

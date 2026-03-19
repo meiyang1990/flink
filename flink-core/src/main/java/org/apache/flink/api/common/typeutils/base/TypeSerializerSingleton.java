@@ -21,6 +21,10 @@ package org.apache.flink.api.common.typeutils.base;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 
+/**
+ * 定长或无状态基础类型序列化器的单例基类。
+ */
+
 @Internal
 public abstract class TypeSerializerSingleton<T> extends TypeSerializer<T> {
 

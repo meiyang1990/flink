@@ -25,6 +25,9 @@ import org.apache.flink.configuration.description.TextElement;
 
 /** A collection of all configuration options that relate to state backend. */
 @PublicEvolving
+/**
+ * 定义 State Backend 相关配置项。
+ */
 public class StateBackendOptions {
 
     // ------------------------------------------------------------------------

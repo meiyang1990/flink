@@ -36,6 +36,9 @@ import static org.apache.flink.configuration.description.TextElement.code;
 /** The set of configuration options for core parameters. */
 @PublicEvolving
 @ConfigGroups(groups = {@ConfigGroup(name = "Environment", keyPrefix = "env")})
+/**
+ * 定义 Core 相关配置项。
+ */
 public class CoreOptions {
 
     @Internal

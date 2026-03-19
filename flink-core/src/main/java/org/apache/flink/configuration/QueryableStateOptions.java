@@ -30,6 +30,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
  */
 @PublicEvolving
 @Deprecated
+/**
+ * 定义 Queryable State 相关配置项。
+ */
 public class QueryableStateOptions {
 
     // ------------------------------------------------------------------------

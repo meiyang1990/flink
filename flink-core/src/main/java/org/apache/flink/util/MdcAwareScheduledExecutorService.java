@@ -27,6 +27,10 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.flink.util.MdcUtils.wrapCallable;
 import static org.apache.flink.util.MdcUtils.wrapRunnable;
 
+/**
+ * 在定时或周期任务执行时传播 MDC 上下文的 `ScheduledExecutorService` 包装器。
+ */
+
 class MdcAwareScheduledExecutorService extends MdcAwareExecutorService<ScheduledExecutorService>
         implements ScheduledExecutorService {
 

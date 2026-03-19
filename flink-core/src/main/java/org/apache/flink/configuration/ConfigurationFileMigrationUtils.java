@@ -32,6 +32,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ /**
+  * 负责将旧版配置文件内容迁移为新版配置格式。
+  */
  * Utility class for migrating legacy Flink configuration file {@code flink-conf.yaml} to the new
  * format starting from Flink 2.0. This class provides methods to load legacy configuration files
  * and convert them into the new configuration format.

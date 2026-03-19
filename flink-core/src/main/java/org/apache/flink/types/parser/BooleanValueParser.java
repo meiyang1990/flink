@@ -21,6 +21,10 @@ package org.apache.flink.types.parser;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.types.BooleanValue;
 
+/**
+ * 用于将字节序列解析为 `BooleanValue`。
+ */
+
 @PublicEvolving
 public class BooleanValueParser extends FieldParser<BooleanValue> {
 

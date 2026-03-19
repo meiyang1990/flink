@@ -37,6 +37,10 @@ import java.util.TreeMap;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * 通用 CSV 输入格式实现，负责按字段配置解析文本记录。
+ */
+
 @Internal
 public abstract class GenericCsvInputFormat<OT> extends DelimitedInputFormat<OT> {
 
@@ -199,6 +203,10 @@ public abstract class GenericCsvInputFormat<OT> extends DelimitedInputFormat<OT>
         }
     }
 
+    /**
+     * 按读取顺序配置所有字段类型，并校验每种类型都存在对应解析器。
+     */
+
     protected void setFieldTypesGeneric(Class<?>... fieldTypes) {
         if (fieldTypes == null) {
             throw new IllegalArgumentException("Field types must not be null.");
@@ -225,6 +233,10 @@ public abstract class GenericCsvInputFormat<OT> extends DelimitedInputFormat<OT>
 
         this.fieldTypes = types.toArray(new Class<?>[types.size()]);
     }
+
+    /**
+     * 按源字段下标选择需要读取的列，并建立稀疏到紧凑的类型映射。
+     */
 
     protected void setFieldsGeneric(int[] sourceFieldIndices, Class<?>[] fieldTypes) {
         checkNotNull(sourceFieldIndices);
@@ -261,6 +273,10 @@ public abstract class GenericCsvInputFormat<OT> extends DelimitedInputFormat<OT>
 
         this.fieldTypes = types.toArray(new Class<?>[types.size()]);
     }
+
+    /**
+     * 使用布尔掩码声明需要保留的列，并同步校验字段类型列表。
+     */
 
     protected void setFieldsGeneric(boolean[] includedMask, Class<?>[] fieldTypes) {
         checkNotNull(includedMask);
@@ -302,6 +318,10 @@ public abstract class GenericCsvInputFormat<OT> extends DelimitedInputFormat<OT>
     // --------------------------------------------------------------------------------------------
     //  Runtime methods
     // --------------------------------------------------------------------------------------------
+
+    /**
+     * 为当前文件分片初始化字段解析器，并按配置跳过表头。
+     */
 
     @Override
     protected void initializeSplit(FileInputSplit split, Long offset) throws IOException {
@@ -371,6 +391,10 @@ public abstract class GenericCsvInputFormat<OT> extends DelimitedInputFormat<OT>
         }
         super.close();
     }
+
+    /**
+     * 按字段配置解析一行 CSV 记录，并在严格或宽松模式下处理异常输入。
+     */
 
     protected boolean parseRecord(Object[] holders, byte[] bytes, int offset, int numBytes)
             throws ParseException {
@@ -480,6 +504,10 @@ public abstract class GenericCsvInputFormat<OT> extends DelimitedInputFormat<OT>
 
         return string.toString();
     }
+
+    /**
+     * 跳过当前字段内容，兼容普通字段和带引号字段两种扫描方式。
+     */
 
     protected int skipFields(byte[] bytes, int startPos, int limit, byte[] delim) {
 

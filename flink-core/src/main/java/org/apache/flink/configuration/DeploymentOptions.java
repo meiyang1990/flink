@@ -30,6 +30,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** The {@link ConfigOption configuration options} relevant for all Executors. */
 @PublicEvolving
+/**
+ * 定义 Deployment 相关配置项。
+ */
 public class DeploymentOptions {
 
     public static final ConfigOption<String> TARGET =

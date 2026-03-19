@@ -25,6 +25,9 @@ import java.time.Duration;
 
 /** A collection of all configuration options that relate to changelog. */
 @PublicEvolving
+/**
+ * 定义 State Changelog 相关配置项。
+ */
 public class StateChangelogOptions {
 
     @Documentation.Section(Documentation.Sections.STATE_CHANGELOG)

@@ -27,6 +27,9 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 
 /** Configuration options for the job events. */
 @PublicEvolving
+/**
+ * 定义 Job Event Store 相关配置项。
+ */
 public class JobEventStoreOptions {
 
     @Documentation.Section({Documentation.Sections.EXPERT_SCHEDULING})

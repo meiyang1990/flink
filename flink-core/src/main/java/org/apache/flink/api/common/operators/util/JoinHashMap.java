@@ -25,6 +25,10 @@ import org.apache.flink.api.common.typeutils.TypeSerializer;
 
 import org.apache.commons.collections.map.AbstractHashedMap;
 
+/**
+ * 供集合 Join 使用的哈希表，支持构建端写入和探测端查找。
+ */
+
 @Internal
 public class JoinHashMap<BT> extends AbstractHashedMap {
 
@@ -46,10 +50,18 @@ public class JoinHashMap<BT> extends AbstractHashedMap {
         return buildComparator;
     }
 
+    /**
+     * 为探测端记录创建查找器，以便复用比较器状态。
+     */
+
     public <PT> Prober<PT> createProber(
             TypeComparator<PT> probeComparator, TypePairComparator<PT, BT> pairComparator) {
         return new Prober<PT>(probeComparator, pairComparator);
     }
+
+    /**
+     * 按构建端键写入记录；若键已存在则用新值覆盖旧值。
+     */
 
     @SuppressWarnings("unchecked")
     public void insertOrReplace(BT record) {
@@ -69,6 +81,10 @@ public class JoinHashMap<BT> extends AbstractHashedMap {
         addMapping(index, hashCode, null, record);
     }
 
+    /**
+     * 面向探测端的查找器，负责在哈希表中按键匹配构建端记录。
+     */
+
     public class Prober<PT> {
 
         public Prober(
@@ -80,6 +96,10 @@ public class JoinHashMap<BT> extends AbstractHashedMap {
         private final TypeComparator<PT> probeComparator;
 
         private final TypePairComparator<PT, BT> pairComparator;
+
+        /**
+         * 按探测端记录查找匹配的构建端记录。
+         */
 
         @SuppressWarnings("unchecked")
         public BT lookupMatch(PT record) {

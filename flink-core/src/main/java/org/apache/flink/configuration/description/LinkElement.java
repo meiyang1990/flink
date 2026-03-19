@@ -21,6 +21,9 @@ package org.apache.flink.configuration.description;
 import org.apache.flink.annotation.PublicEvolving;
 
 /** Element that represents a link in the {@link Description}. */
+/**
+ * 表示带链接地址与文本的说明元素。
+ */
 @PublicEvolving
 public class LinkElement implements InlineElement {
     private final String link;

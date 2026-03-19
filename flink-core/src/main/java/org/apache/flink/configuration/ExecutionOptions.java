@@ -31,6 +31,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** {@link ConfigOption}s specific for a single execution of a user program. */
 @PublicEvolving
+/**
+ * 定义 Execution 相关配置项。
+ */
 public class ExecutionOptions {
     /** A special marker value for disabling buffer timeout. */
     public static final long DISABLED_NETWORK_BUFFER_TIMEOUT = -1L;

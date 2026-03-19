@@ -54,6 +54,9 @@ import java.util.Optional;
  * This class contains utility methods to load standard yaml file and convert object to standard
  * yaml syntax.
  */
+/**
+ * 提供标准 YAML 配置的加载、转储和对象转换工具。
+ */
 public class YamlParserUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(YamlParserUtils.class);
@@ -84,6 +87,7 @@ public class YamlParserUtils {
             new Load(LoadSettings.builder().setSchema(new CoreSchema()).build());
 
     /**
+     * 读取标准 YAML 文件，并返回对应的层级映射结构。
      * Loads the contents of the given YAML file into a map.
      *
      * @param file the YAML file to load.
@@ -115,6 +119,7 @@ public class YamlParserUtils {
     }
 
     /**
+     * 将对象转换为单行 YAML 字符串表示。
      * Converts the given value to a string representation in the YAML syntax. This method uses a
      * YAML parser to convert the object to YAML format.
      *
@@ -183,6 +188,7 @@ public class YamlParserUtils {
     }
 
     /**
+     * 清洗 YAML 解析异常中的敏感内容，避免在错误信息中泄露配置值。
      * This method wraps a MarkedYAMLException to hide sensitive data in its message. Before using
      * this method, an exception message might include sensitive information like:
      *
@@ -208,6 +214,9 @@ public class YamlParserUtils {
      *
      * @param exception The MarkedYamlEngineException containing potentially sensitive data.
      * @return A YamlEngineException with a message that has sensitive data hidden.
+     */
+    /**
+     * 清洗 YAML 解析异常中的敏感内容，避免在错误信息中泄露配置值。
      */
     private static YamlEngineException wrapExceptionToHiddenSensitiveData(
             MarkedYamlEngineException exception) {

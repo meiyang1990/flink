@@ -24,6 +24,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
+ /**
+  * 集中定义历史兼容或底层使用的配置常量。
+  */
  * This class contains all constants for the configuration. That includes the configuration keys and
  * the default values.
  */

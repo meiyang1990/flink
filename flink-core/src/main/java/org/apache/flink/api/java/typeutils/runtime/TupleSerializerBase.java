@@ -29,6 +29,10 @@ import java.util.Objects;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * Tuple 类型序列化器的基础实现，负责维护字段序列化器和元信息。
+ */
+
 @Internal
 public abstract class TupleSerializerBase<T> extends TypeSerializer<T> {
 
@@ -58,6 +62,10 @@ public abstract class TupleSerializerBase<T> extends TypeSerializer<T> {
         return false;
     }
 
+    /**
+     * 按字段序列化器的长度汇总 Tuple 的固定长度；只要存在变长字段就返回 `-1`。
+     */
+
     @Override
     public int getLength() {
         if (length == -2) {
@@ -81,7 +89,15 @@ public abstract class TupleSerializerBase<T> extends TypeSerializer<T> {
 
     // We use this in the Aggregate and Distinct Operators to create instances
     // of immutable Tuples (i.e. Scala Tuples)
+    /**
+     * 根据字段数组创建新的 Tuple 实例。
+     */
+
     public abstract T createInstance(Object[] fields);
+
+    /**
+     * 优先复用已有对象来承载字段值，减少 Tuple 创建开销。
+     */
 
     public abstract T createOrReuseInstance(Object[] fields, T reuse);
 

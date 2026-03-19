@@ -51,6 +51,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
                     name = "FixedDelayCleanupStrategy",
                     keyPrefix = "cleanup-strategy.fixed-delay"),
         })
+/**
+ * 定义 Cleanup 相关配置项。
+ */
 public class CleanupOptions {
 
     private static final String CLEANUP_STRATEGY_PARAM = "cleanup-strategy";

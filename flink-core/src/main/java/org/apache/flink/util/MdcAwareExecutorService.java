@@ -32,6 +32,10 @@ import java.util.concurrent.TimeoutException;
 import static org.apache.flink.util.MdcUtils.wrapCallable;
 import static org.apache.flink.util.MdcUtils.wrapRunnable;
 
+/**
+ * 在执行任务时传播 MDC 上下文的 `ExecutorService` 包装器。
+ */
+
 class MdcAwareExecutorService<S extends ExecutorService> extends MdcAwareExecutor<S>
         implements ExecutorService {
 

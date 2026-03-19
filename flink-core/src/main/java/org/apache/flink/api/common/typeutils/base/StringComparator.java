@@ -25,6 +25,10 @@ import org.apache.flink.types.StringValue;
 
 import java.io.IOException;
 
+/**
+ * 用于比较字符串值的比较器。
+ */
+
 @Internal
 public final class StringComparator extends BasicTypeComparator<String> {
 

@@ -34,6 +34,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /** Options which control the cluster behaviour. */
 @PublicEvolving
+/**
+ * 定义 Cluster 相关配置项。
+ */
 public class ClusterOptions {
 
     @Documentation.Section(Documentation.Sections.EXPERT_CLUSTER)

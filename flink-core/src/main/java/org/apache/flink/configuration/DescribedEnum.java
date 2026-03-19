@@ -24,6 +24,9 @@ import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.configuration.description.TextElement;
 
 /**
+ /**
+  * 定义可为枚举值提供文本描述的约定。
+  */
  * Describe enum constants used in {@link ConfigOption}s.
  *
  * <p>For enums used as config options, this interface can be implemented to provide a {@link

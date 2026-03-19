@@ -37,6 +37,9 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** General utilities for parsing values to configuration options. */
+/**
+ * 提供配置对象与集合、枚举等结构之间转换的辅助方法。
+ */
 @Internal
 public class ConfigUtils {
 

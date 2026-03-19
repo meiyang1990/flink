@@ -25,6 +25,9 @@ import org.apache.flink.annotation.PublicEvolving;
  * Configuration} are not valid. This may refer to the Flink configuration with which the framework
  * is started, or a Configuration passed internally between components.
  */
+/**
+ * 表示配置内容非法或无法加载时抛出的异常。
+ */
 @PublicEvolving
 public class IllegalConfigurationException extends RuntimeException {
 

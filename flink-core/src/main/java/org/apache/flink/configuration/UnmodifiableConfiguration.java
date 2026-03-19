@@ -22,6 +22,9 @@ import org.apache.flink.annotation.Public;
 
 import java.util.Properties;
 
+/**
+ * 只读配置包装器，禁止对底层配置进行修改。
+ */
 /** Unmodifiable version of the Configuration class. */
 @Public
 public class UnmodifiableConfiguration extends Configuration {

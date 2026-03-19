@@ -23,6 +23,10 @@ import org.apache.flink.api.common.typeutils.base.LongComparator;
 
 import static java.lang.Math.min;
 
+/**
+ * 用于比较 `long` 原生数组的比较器。
+ */
+
 @Internal
 public class LongPrimitiveArrayComparator extends PrimitiveArrayComparator<long[], LongComparator> {
     public LongPrimitiveArrayComparator(boolean ascending) {

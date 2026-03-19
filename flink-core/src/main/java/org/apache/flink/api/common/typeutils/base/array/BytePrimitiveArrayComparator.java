@@ -23,6 +23,10 @@ import org.apache.flink.api.common.typeutils.base.ByteComparator;
 
 import static java.lang.Math.min;
 
+/**
+ * 用于比较 `byte` 原生数组的比较器。
+ */
+
 @Internal
 public class BytePrimitiveArrayComparator extends PrimitiveArrayComparator<byte[], ByteComparator> {
     public BytePrimitiveArrayComparator(boolean ascending) {

@@ -21,6 +21,10 @@ package org.apache.flink.api.common.typeutils;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.Configuration;
 
+/**
+ * 定义创建 `TypeSerializer` 的工厂接口。
+ */
+
 @Internal
 public interface TypeSerializerFactory<T> {
 

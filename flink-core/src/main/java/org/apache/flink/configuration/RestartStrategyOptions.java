@@ -60,6 +60,9 @@ import static org.apache.flink.configuration.description.TextElement.text;
                     name = "FailureRateRestartStrategy",
                     keyPrefix = RESTART_STRATEGY_CONFIG_PREFIX + ".failure-rate")
         })
+/**
+ * 定义 Restart Strategy 相关配置项。
+ */
 public class RestartStrategyOptions {
 
     @Internal public static final String RESTART_STRATEGY_CONFIG_PREFIX = "restart-strategy";

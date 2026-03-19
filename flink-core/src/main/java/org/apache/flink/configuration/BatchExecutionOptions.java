@@ -31,6 +31,9 @@ import static org.apache.flink.configuration.description.TextElement.code;
 
 /** Configuration options for the batch job execution. */
 @PublicEvolving
+/**
+ * 定义 Batch Execution 相关配置项。
+ */
 public class BatchExecutionOptions {
 
     @Documentation.Section({Documentation.Sections.EXPERT_SCHEDULING})

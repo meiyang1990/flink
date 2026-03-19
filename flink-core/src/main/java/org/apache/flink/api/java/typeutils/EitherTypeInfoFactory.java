@@ -26,6 +26,10 @@ import org.apache.flink.types.Either;
 import java.lang.reflect.Type;
 import java.util.Map;
 
+/**
+ * 为 `Either` 类型推导左右分支的 `TypeInformation`。
+ */
+
 public class EitherTypeInfoFactory<L, R> extends TypeInfoFactory<Either<L, R>> {
 
     @Override

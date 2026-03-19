@@ -21,6 +21,9 @@ package org.apache.flink.configuration.description;
 import org.apache.flink.annotation.PublicEvolving;
 
 /** Part of a {@link Description} that can be converted into String representation. */
+/**
+ * 配置说明元素的通用接口。
+ */
 @PublicEvolving
 interface DescriptionElement {
     /**
