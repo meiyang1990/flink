@@ -23,6 +23,14 @@ import org.apache.flink.runtime.jobmaster.SlotContext;
 /**
  * The context of an {@link AllocatedSlot}. This represent an interface to classes outside the slot
  * pool to interact with allocated slots.
+ *
+ * <p>【学习型注释】
+ * PhysicalSlot 表示物理 Slot 的上下文接口，是 AllocatedSlot 对外暴露的交互接口。
+ * 它将 Slot 池内部的 AllocatedSlot 与外部组件（如 Scheduler）解耦，提供统一的 Slot 操作视图。
+ * 核心功能：
+ * - tryAssignPayload: 尝试将 Payload（通常是 Execution）分配给该 Slot
+ * - Payload 接口: 定义了可以被分配到 Slot 的对象的行为（如释放、终止状态查询）
+ * 通过 PhysicalSlot，Scheduler 可以将 Execution 部署到具体的 Slot 上执行。
  */
 public interface PhysicalSlot extends SlotContext {
 

@@ -24,7 +24,14 @@ import org.apache.flink.runtime.jobmaster.JobMasterService;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/** Factory for the {@link JobMasterService}. */
+/**
+ * Factory for the {@link JobMasterService}.
+ *
+ * <p>【学习型注释】
+ * JobMasterServiceFactory 是 JobMasterService 的工厂接口，用于创建 JobMaster 服务实例。
+ * 在高可用模式下，当 JobManager 成为 Leader 后，通过此工厂创建 JobMasterService 来执行作业。
+ * 工厂模式允许灵活配置 JobMaster 的依赖组件（如 OnCompletionActions 回调）。
+ */
 public interface JobMasterServiceFactory {
 
     /**

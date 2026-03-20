@@ -35,7 +35,19 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-/** The Interface of a slot pool that manages slots. */
+/**
+ * The Interface of a slot pool that manages slots.
+ *
+ * <p>【学习型注释】
+ * SlotPool 是 Flink 传统的 Slot 池接口，用于管理从 ResourceManager 获取的 Slot 资源。
+ * 它是旧版资源管理机制的核心组件，主要职责：
+ * - 向 ResourceManager 请求特定 Slot
+ * - 接收 TaskExecutor 的 Slot 报价（SlotOffer）
+ * - 管理已分配的 Slot，响应 Scheduler 的 Slot 请求
+ * - 处理 TaskManager 断开时的 Slot 释放
+ * 注意：Flink 1.14+ 引入了声明式 Slot 池（DeclarativeSlotPool）作为新的资源管理机制，
+ * SlotPool 逐渐向声明式模型迁移，但两者目前共存以兼容旧代码。
+ */
 public interface SlotPool extends AllocatedSlotActions, AutoCloseable {
 
     // ------------------------------------------------------------------------

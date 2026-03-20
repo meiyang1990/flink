@@ -60,7 +60,19 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-/** {@link JobMaster} rpc gateway interface. */
+/**
+ * {@link JobMaster} rpc gateway interface.
+ *
+ * <p>【学习型注释】
+ * JobMasterGateway 是 JobMaster 的 RPC 网关接口，定义了外部组件与 JobMaster 通信的所有方法。
+ * 它继承了多个功能接口：
+ * - CheckpointCoordinatorGateway: Checkpoint 相关操作（触发、确认、取消）
+ * - FencedRpcGateway: 带 fencing token 的 RPC 安全机制，防止脑裂
+ * - KvStateLocationOracle/KvStateRegistryGateway: 可查询状态的位置服务
+ * - JobMasterOperatorEventGateway: Operator 事件传递（如 Watermark、延迟标记）
+ * - BlocklistListener: 屏蔽列表监听（用于故障节点隔离）
+ * 通过该接口，Dispatcher、TaskExecutor、ResourceManager 等组件可以远程调用 JobMaster 的功能。
+ */
 public interface JobMasterGateway
         extends CheckpointCoordinatorGateway,
                 FencedRpcGateway<JobMasterId>,

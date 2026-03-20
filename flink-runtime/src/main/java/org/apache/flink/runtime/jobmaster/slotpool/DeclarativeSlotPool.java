@@ -39,6 +39,14 @@ import java.util.Collection;
  * <p>In order to acquire new resources, users need to increase the required resources. Once they no
  * longer need the resources, users need to decrease the required resources so that superfluous
  * resources can be returned.
+ *
+ * <p>【学习型注释】
+ * DeclarativeSlotPool 是 Flink 声明式资源管理协议的核心接口。
+ * 与传统命令式资源管理（直接请求特定 Slot）不同，声明式管理通过声明资源需求来工作：
+ * - JobMaster 声明"我需要 X 个具有 Y 资源配置的 Slot"
+ * - ResourceManager 根据需求决定如何分配资源，可以动态调整
+ * - 当需求减少时，多余的 Slot 会被自动释放回资源池
+ * 这种模式提高了资源利用率，支持更好的资源调度和弹性伸缩。
  */
 public interface DeclarativeSlotPool {
 

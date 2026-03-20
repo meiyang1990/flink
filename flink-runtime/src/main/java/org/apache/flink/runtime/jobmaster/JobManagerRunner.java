@@ -28,7 +28,18 @@ import org.apache.flink.util.AutoCloseableAsync;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-/** Interface for a runner which executes a {@link JobMaster}. */
+/**
+ * Interface for a runner which executes a {@link JobMaster}.
+ *
+ * <p>【学习型注释】
+ * JobManagerRunner 是 JobMaster 的运行器接口，负责在集群环境中启动和管理单个 JobMaster 实例的生命周期。
+ * 在高可用模式下，多个 JobManager 实例可能同时存在，但只有一个成为 Leader 并实际运行 JobMaster。
+ * 主要职责：
+ * 1. 启动 JobMaster 并参与 Leader 选举
+ * 2. 提供 JobMasterGateway 供外部访问
+ * 3. 监控作业执行结果，处理完成或失败情况
+ * 4. 优雅关闭 JobMaster 并释放资源
+ */
 public interface JobManagerRunner extends AutoCloseableAsync {
 
     /**

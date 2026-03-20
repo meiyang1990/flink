@@ -35,7 +35,20 @@ import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-/** Implementation of the {@link LogicalSlot}. */
+/**
+ * Implementation of the {@link LogicalSlot}.
+ *
+ * <p>【学习型注释】
+ * SingleLogicalSlot 是 LogicalSlot 的实现类，表示单个逻辑 Slot。
+ * 与 PhysicalSlot 不同，LogicalSlot 是更高层的抽象，可以被多个 Execution 共享（通过 Slot Sharing）。
+ * 特点：
+ * - 实现了 PhysicalSlot.Payload 接口，可以作为负载分配给 PhysicalSlot
+ * - 使用原子引用字段更新器（AtomicReferenceFieldUpdater）保证线程安全
+ * - 维护 Slot 状态（ALLOCATED、RELEASING、RELEASED）
+ * - 支持分配 Payload（Execution）和释放 Slot
+ * 当 Execution 需要运行时，Scheduler 会为其分配一个 SingleLogicalSlot，
+ * 然后该 LogicalSlot 被分配到底层的 PhysicalSlot 上执行。
+ */
 public class SingleLogicalSlot implements LogicalSlot, PhysicalSlot.Payload {
 
     private static final AtomicReferenceFieldUpdater<SingleLogicalSlot, Payload> PAYLOAD_UPDATER =

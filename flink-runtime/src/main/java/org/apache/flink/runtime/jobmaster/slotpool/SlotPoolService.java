@@ -34,7 +34,19 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Optional;
 
-/** Service used by the {@link JobMaster} to manage a slot pool. */
+/**
+ * Service used by the {@link JobMaster} to manage a slot pool.
+ *
+ * <p>【学习型注释】
+ * SlotPoolService 是 JobMaster 用于管理 Slot 资源池的服务接口。
+ * 它是 JobMaster 与 ResourceManager 之间的桥梁，负责：
+ * - 向 ResourceManager 申请和释放 Slot 资源
+ * - 接收 TaskExecutor 提供的 Slot 报价（SlotOffer）
+ * - 管理已分配的 Slot，提供给 Execution 使用
+ * - 处理 TaskManager 的断开连接和资源回收
+ * 实现类 DeclarativeSlotPoolService 使用声明式资源管理协议，
+ * 通过声明资源需求（ResourceRequirement）而非直接请求具体 Slot 来优化资源分配。
+ */
 public interface SlotPoolService extends AutoCloseable {
 
     /**

@@ -29,6 +29,16 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * A logical slot represents a resource on a TaskManager into which a single task can be deployed.
+ *
+ * <p>【学习型注释】
+ * LogicalSlot 表示 TaskManager 上的一个逻辑资源槽位，用于部署单个 Task。
+ * 它是 Slot 的抽象表示，屏蔽了底层物理 Slot 的细节，提供统一的资源视图。
+ * 主要功能：
+ * - 关联到具体的 TaskManagerGateway，用于与 TaskExecutor 通信
+ * - 支持部署 Task（通过 assignPayload 方法）
+ * - 支持释放 Slot（通过 releaseSlot 方法）
+ * - 提供数据本地性信息（Locality），优化数据传输
+ * LogicalSlot 可以被多个 Execution 共享（Slot Sharing）或独占（根据 SlotSharingGroup 配置）。
  */
 public interface LogicalSlot {
 

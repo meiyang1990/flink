@@ -27,7 +27,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Default {@link ExecutionDeploymentTracker} implementation. */
+/**
+ * Default {@link ExecutionDeploymentTracker} implementation.
+ *
+ * <p>【学习型注释】
+ * DefaultExecutionDeploymentTracker 是 ExecutionDeploymentTracker 的默认实现，
+ * 用于跟踪 Task 部署状态。它维护了以下映射关系：
+ * - pendingDeployments: 正在部署中的 Execution（尚未收到 TaskExecutor 确认）
+ * - executionsByHost: 每个 TaskManager 上运行的 Execution 集合
+ * - hostByExecution: 每个 Execution 所在的 TaskManager
+ * 这些信息用于部署一致性检查（Deployment Reconciliation），确保 JobMaster 和 TaskExecutor 对 Task 状态达成一致。
+ */
 public class DefaultExecutionDeploymentTracker implements ExecutionDeploymentTracker {
 
     private final Set<ExecutionAttemptID> pendingDeployments = new HashSet<>();

@@ -150,6 +150,17 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <ul>
  *   <li>{@link #updateTaskExecutionState} updates the task execution state for given task
  * </ul>
+ *
+ * <p>【学习型注释】
+ * JobMaster 是 Flink 作业执行的核心协调者，每个作业对应一个 JobMaster 实例。
+ * 主要职责包括：
+ * 1. 维护 ExecutionGraph：管理作业的执行状态、Task 调度、失败恢复
+ * 2. 资源管理：向 ResourceManager 申请 Slot，与 SlotPool 协调资源分配
+ * 3. 任务部署：将 Task 部署到 TaskExecutor 上执行
+ * 4. Checkpoint 协调：触发和管理分布式快照
+ * 5. 故障处理：监控 Task 心跳，处理 Task 失败和重启
+ * 6. 状态查询：提供作业状态、指标、累积器等查询接口
+ * 作为 RPC 端点，它通过 JobMasterGateway 接收来自 Dispatcher、TaskExecutor、ResourceManager 的远程调用。
  */
 public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         implements JobMasterGateway, JobMasterService {

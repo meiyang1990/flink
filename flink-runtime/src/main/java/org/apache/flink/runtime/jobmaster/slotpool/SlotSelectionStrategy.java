@@ -26,7 +26,17 @@ import javax.annotation.Nonnull;
 
 import java.util.Optional;
 
-/** Interface for slot selection strategies. */
+/**
+ * Interface for slot selection strategies.
+ *
+ * <p>【学习型注释】
+ * SlotSelectionStrategy 定义了 Slot 选择策略的接口，用于从可用 Slot 中选择最适合的一个。
+ * 选择策略考虑数据本地性（Locality）和资源匹配度，优化 Task 的部署位置：
+ * - LocationPreferenceSlotSelectionStrategy: 优先选择数据本地性最好的 Slot
+ * - DefaultLocationPreferenceSlotSelectionStrategy: 默认策略，平衡本地性和资源需求
+ * - EvenlySpreadOutLocationPreferenceSlotSelectionStrategy: 均匀分布策略，避免热点
+ * 通过选择策略，Flink 可以尽量减少跨网络数据传输，提高作业执行效率。
+ */
 public interface SlotSelectionStrategy {
 
     /**

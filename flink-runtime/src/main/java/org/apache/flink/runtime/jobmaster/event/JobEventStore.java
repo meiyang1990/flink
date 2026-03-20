@@ -18,7 +18,17 @@
 
 package org.apache.flink.runtime.jobmaster.event;
 
-/** A store for recording the {@link JobEvent}. */
+/**
+ * A store for recording the {@link JobEvent}.
+ *
+ * <p>【学习型注释】
+ * JobEventStore 用于持久化存储作业执行期间产生的事件。
+ * 它提供了事件的写入、读取和管理功能，支持：
+ * - 事件持久化：将 JobEvent 写入文件系统（如 HDFS、本地文件）
+ * - 事件回放：按顺序读取历史事件，用于作业状态恢复
+ * - 文件分段：通过 cutBlock 参数控制事件文件的分段，便于管理和清理
+ * 实现类 FileSystemJobEventStore 基于文件系统实现事件存储。
+ */
 public interface JobEventStore {
 
     /** Start the store. This method should be called before any other operations. */

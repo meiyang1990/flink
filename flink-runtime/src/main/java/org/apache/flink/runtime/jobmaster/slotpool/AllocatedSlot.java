@@ -40,6 +40,16 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>Note: Prior to the resource management changes introduced in (Flink Improvement Proposal 6),
  * an AllocatedSlot was allocated to the JobManager as soon as the TaskManager registered at the
  * JobManager. All slots had a default unknown resource profile.
+ *
+ * <p>【学习型注释】
+ * AllocatedSlot 表示 JobMaster 从 TaskExecutor 成功分配到的 Slot 资源。
+ * 它是 PhysicalSlot 的实现，封装了 Slot 的关键信息：
+ * - allocationId: Slot 的唯一标识
+ * - taskManagerLocation: TaskManager 的位置信息（主机名、端口等）
+ * - resourceProfile: Slot 的资源配置（CPU、内存等）
+ * - taskManagerGateway: 与 TaskExecutor 通信的网关
+ * 分配流程：JobMaster 向 ResourceManager 请求 Slot → ResourceManager 选择合适的 TaskExecutor →
+ * TaskExecutor 分配 Slot 并通知 JobMaster → 创建 AllocatedSlot 对象。
  */
 class AllocatedSlot implements PhysicalSlot {
 

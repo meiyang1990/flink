@@ -22,7 +22,17 @@ import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 
 import java.util.Map;
 
-/** A tracker for deployed executions. */
+/**
+ * A tracker for deployed executions.
+ *
+ * <p>【学习型注释】
+ * ExecutionDeploymentTracker 用于跟踪 Task 的部署状态。
+ * 当 JobMaster 向 TaskExecutor 提交 Task 时，需要记录部署请求的状态：
+ * - 已发送部署请求但尚未收到确认（Pending）
+ * - 部署完成并收到 TaskExecutor 确认（Complete）
+ * - 部署失败或 Task 被取消（Stop Tracking）
+ * 该跟踪器支持部署一致性检查，用于发现和修复 JobMaster 与 TaskExecutor 之间的状态不一致。
+ */
 public interface ExecutionDeploymentTracker {
 
     /**

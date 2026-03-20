@@ -20,7 +20,17 @@ package org.apache.flink.runtime.jobmaster.event;
 
 import java.io.Serializable;
 
-/** A class that represents an event that happens during the job execution. */
+/**
+ * A class that represents an event that happens during the job execution.
+ *
+ * <p>【学习型注释】
+ * JobEvent 是作业执行期间发生的事件接口，用于记录和回放作业生命周期中的关键状态变更。
+ * 典型事件包括：
+ * - ExecutionJobVertexFinishedEvent: JobVertex 完成
+ * - ExecutionVertexFinishedEvent: ExecutionVertex 完成
+ * - ExecutionVertexResetEvent: ExecutionVertex 重置（用于失败恢复）
+ * 这些事件被持久化到 JobEventStore，支持作业状态恢复和调试分析。
+ */
 public interface JobEvent extends Serializable {
 
     /**

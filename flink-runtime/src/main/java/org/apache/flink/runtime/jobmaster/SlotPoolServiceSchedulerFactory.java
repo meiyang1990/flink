@@ -45,7 +45,16 @@ import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
-/** Factory for {@link SlotPoolService} and {@link SchedulerNG}. */
+/**
+ * Factory for {@link SlotPoolService} and {@link SchedulerNG}.
+ *
+ * <p>【学习型注释】
+ * SlotPoolServiceSchedulerFactory 是 SlotPoolService 和 SchedulerNG 的工厂接口。
+ * 它负责创建作业调度所需的两个核心组件：
+ * - SlotPoolService: 管理 Slot 资源池，向 ResourceManager 申请和释放 Slot
+ * - SchedulerNG: 新一代调度器，负责 ExecutionGraph 的调度和执行
+ * 通过工厂模式，可以灵活配置不同的 Slot 池实现（如声明式 Slot 池）和调度策略。
+ */
 public interface SlotPoolServiceSchedulerFactory {
 
     /**

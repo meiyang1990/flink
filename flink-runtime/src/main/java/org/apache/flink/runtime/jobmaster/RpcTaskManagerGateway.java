@@ -37,7 +37,19 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-/** Implementation of the {@link TaskManagerGateway} for Flink's RPC system. */
+/**
+ * Implementation of the {@link TaskManagerGateway} for Flink's RPC system.
+ *
+ * <p>【学习型注释】
+ * RpcTaskManagerGateway 是 TaskManagerGateway 的 RPC 实现，作为 JobMaster 与 TaskExecutor 之间的通信桥梁。
+ * 它封装了 TaskExecutorGateway，将高层调用转换为 RPC 请求发送到 TaskExecutor。
+ * 主要功能：
+ * - 提交 Task 到 TaskExecutor
+ * - 触发 Checkpoint 和 Savepoint
+ * - 发送 Operator 事件（如 Watermark）
+ * - 查询 Partition 状态
+ * 每个 RpcTaskManagerGateway 实例关联一个特定的 TaskExecutor 和 JobMasterId。
+ */
 public class RpcTaskManagerGateway implements TaskManagerGateway {
 
     private final TaskExecutorGateway taskExecutorGateway;

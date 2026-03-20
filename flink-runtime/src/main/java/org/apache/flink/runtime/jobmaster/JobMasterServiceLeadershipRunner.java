@@ -70,6 +70,16 @@ import java.util.function.Supplier;
  *   <li>{@link Exception} to signal an unexpected failure
  * </ul>
  */
+/**
+ * 【学习型注释】
+ * JobMasterServiceLeadershipRunner 是 JobManagerRunner 的实现类，负责管理 JobMaster 的 Leader 选举和生命周期。
+ * 在高可用模式下，它参与 Leader 选举，只有成为 Leader 后才启动 JobMaster 服务。
+ * 主要职责：
+ * 1. 参与 Leader 选举（通过 LeaderContender 接口）
+ * 2. 成为 Leader 后创建并启动 JobMasterService
+ * 3. 失去 Leader 地位时优雅关闭 JobMaster
+ * 4. 处理作业执行结果和异常情况
+ */
 public class JobMasterServiceLeadershipRunner implements JobManagerRunner, LeaderContender {
 
     private static final Logger LOG =
