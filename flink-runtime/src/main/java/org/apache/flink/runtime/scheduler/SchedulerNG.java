@@ -98,36 +98,59 @@ public interface SchedulerNG extends GlobalFailureHandler, AutoCloseableAsync {
      */
     JobManagerOptions.SchedulerType getSchedulerType();
 
+    /**
+     * 开始作业的调度过程。
+     */
     void startScheduling();
 
+    /**
+     * 取消作业执行。
+     */
     void cancel();
 
+    /**
+     * 返回作业终止状态的 Future。
+     */
     CompletableFuture<JobStatus> getJobTerminationFuture();
 
+    /**
+     * 更新任务执行状态。
+     */
     default boolean updateTaskExecutionState(TaskExecutionState taskExecutionState) {
         return updateTaskExecutionState(new TaskExecutionStateTransition(taskExecutionState));
     }
 
+    /**
+     * 更新任务执行状态过渡信息。
+     */
     boolean updateTaskExecutionState(TaskExecutionStateTransition taskExecutionState);
 
+    /**
+     * 请求下一个输入分片（InputSplit）。
+     */
     SerializedInputSplit requestNextInputSplit(
             JobVertexID vertexID, ExecutionAttemptID executionAttempt) throws IOException;
 
+    /**
+     * 请求特定分区的状态。
+     */
     ExecutionState requestPartitionState(
             IntermediateDataSetID intermediateResultId, ResultPartitionID resultPartitionId)
             throws PartitionProducerDisposedException;
 
+    /**
+     * 获取作业的执行图信息。
+     */
     ExecutionGraphInfo requestJob();
 
     /**
-     * Returns the checkpoint statistics for a given job. Although the {@link
-     * CheckpointStatsSnapshot} is included in the {@link ExecutionGraphInfo}, this method is
-     * preferred to {@link SchedulerNG#requestJob()} because it is less expensive.
-     *
-     * @return checkpoint statistics snapshot for job graph
+     * 返回作业的检查点统计快照。
      */
     CheckpointStatsSnapshot requestCheckpointStats();
 
+    /**
+     * 请求当前的作业状态。
+     */
     JobStatus requestJobStatus();
 
     // ------------------------------------------------------------------------------------
