@@ -100,6 +100,28 @@ import java.util.Optional;
  *
  * @param <P> type of provided result partition writers
  * @param <G> type of provided input gates
+ *
+ * <p>【学习型注释】
+ * ShuffleEnvironment 是 Flink Shuffle 服务的本地环境接口。
+ * Shuffle 是分布式计算中数据重分发的核心操作，连接上下游 Task 的数据流。
+ *
+ * <p>核心抽象：
+ * 1. ResultPartitionWriter：生产者写入 Shuffle 数据的出口
+ * 2. InputGate：消费者读取 Shuffle 数据的入口
+ * 两者通过内存 Buffer 传递数据
+ *
+ * <p>生命周期：
+ * 1. start()：启动 Shuffle 服务
+ * 2. createResultPartitionWriters()：为生产者创建输出通道
+ * 3. createInputGates()：为消费者创建输入通道
+ * 4. close()：关闭并释放资源
+ *
+ * <p>分区生命周期管理：
+ * - PIPELINED 分区：消费完成后自动释放
+ * - BLOCKING 分区：需要显式调用 releasePartitionsLocally() 释放
+ *
+ * <p>实现类：
+ * NettyShuffleEnvironment - 基于 Netty 网络通信的默认实现
  */
 public interface ShuffleEnvironment<P extends ResultPartitionWriter, G extends IndexedInputGate>
         extends AutoCloseable {

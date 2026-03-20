@@ -45,19 +45,47 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.RunnableFuture;
 
-/** Default implementation of OperatorStateStore that provides the ability to make snapshots. */
+/**
+ * Default implementation of OperatorStateStore that provides the ability to make snapshots.
+ *
+ * <p>【学习型注释】
+ * DefaultOperatorStateBackend 是 Operator State 的默认存储后端实现。
+ * 与 Keyed State（按 Key 分区）不同，Operator State 是每个 Task 实例独立维护的状态。
+ *
+ * <p>典型使用场景：
+ * - Kafka Source 存储 offset（每个 Task 维护其消费分区的 offset）
+ * - 自定义 Source/Sink 的内部状态
+ *
+ * <p>支持的状态类型：
+ * 1. ListState：列表状态，支持三种重分配模式：
+ *    - SPLIT_DISTRIBUTE：扩缩容时元素平均分配到新 Task
+ *    - UNION：所有 Task 接收全部状态（用于广播场景）
+ *    - BROADCAST：广播状态的底层实现
+ * 2. BroadcastState：广播状态（Map 结构），所有 Task 持有相同副本
+ *
+ * <p>核心数据结构：
+ * - registeredOperatorStates：已注册的 ListState（状态名 -> PartitionableListState）
+ * - registeredBroadcastStates：已注册的 BroadcastState（状态名 -> BackendWritableBroadcastState）
+ * - accessedStatesByName：访问过的状态缓存，避免重复创建
+ *
+ * <p>检查点快照：
+ * 调用 snapshot() 方法创建异步快照，将所有 Operator State 序列化到 OperatorStateHandle。
+ */
 @Internal
 public class DefaultOperatorStateBackend implements OperatorStateBackend {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOperatorStateBackend.class);
 
-    /** The default namespace for state in cases where no state name is provided */
+    /** The default namespace for state in cases where no state name is provided
+     * 【注释】默认状态命名空间，当用户未指定状态名时使用 */
     public static final String DEFAULT_OPERATOR_STATE_NAME = "_default_";
 
-    /** Map for all registered operator states. Maps state name -> state */
+    /** Map for all registered operator states. Maps state name -> state
+     * 【注释】已注册的 ListState 集合，支持扩缩容时的状态重分配 */
     private final Map<String, PartitionableListState<?>> registeredOperatorStates;
 
-    /** Map for all registered operator broadcast states. Maps state name -> state */
+    /** Map for all registered operator broadcast states. Maps state name -> state
+     * 【注释】已注册的 BroadcastState 集合，所有 Task 持有相同副本 */
     private final Map<String, BackendWritableBroadcastState<?, ?>> registeredBroadcastStates;
 
     /** CloseableRegistry to participate in the tasks lifecycle. */

@@ -74,24 +74,51 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <h2>Buffer management</h2>
  *
  * <h2>State management</h2>
+ *
+ * <p>【学习型注释】
+ * ResultPartition 是 Task 输出数据的物理载体，对应执行图中的 IntermediateResultPartition。
+ * 数据以 Buffer 为单位写入，按下游消费者数量划分为多个 ResultSubpartition。
+ *
+ * <p>分区类型（ResultPartitionType）：
+ * - PIPELINED：流水线模式，数据立即可消费，不落盘（流式作业默认）
+ * - BLOCKING：阻塞模式，数据写完后才可消费，数据落盘（批处理作业）
+ * - PIPELINED_BOUNDED：有界流水线，限制内存使用
+ * - HYBRID_FULL/SELECTIVE：混合模式（Flink 1.16+）
+ *
+ * <p>数据分发模式（DistributionPattern）：
+ * - POINTWISE：点对点，每个上游 subtask 只发给部分下游 subtask
+ * - ALL_TO_ALL：全连接，每个上游 subtask 发给所有下游 subtask（Shuffle/Rebalance）
+ *
+ * <p>消费方式：
+ * - LocalInputChannel：同一 TaskManager 内消费（内存直接访问）
+ * - RemoteInputChannel：跨 TaskManager 消费（Netty 网络传输）
+ *
+ * <p>生命周期：生产 -> 消费 -> 释放，PIPELINED 分区消费完自动释放，BLOCKING 分区需显式释放。
  */
 public abstract class ResultPartition implements ResultPartitionWriter {
 
     protected static final Logger LOG = LoggerFactory.getLogger(ResultPartition.class);
 
+    /** 【注释】拥有此分区的 Task 名称 */
     private final String owningTaskName;
 
+    /** 【注释】分区在 Task 输出中的索引 */
     private final int partitionIndex;
 
+    /** 【注释】分区的全局唯一 ID */
     protected final ResultPartitionID partitionId;
 
-    /** Type of this partition. Defines the concrete subpartition implementation to use. */
+    /** Type of this partition. Defines the concrete subpartition implementation to use.
+     * 【注释】分区类型（PIPELINED/BLOCKING 等），决定数据如何存储和消费 */
     protected final ResultPartitionType partitionType;
 
+    /** 【注释】分区管理器，管理 TaskExecutor 上所有的 ResultPartition */
     protected final ResultPartitionManager partitionManager;
 
+    /** 【注释】子分区数量，等于下游并行度（ALL_TO_ALL）或部分下游（POINTWISE） */
     protected final int numSubpartitions;
 
+    /** 【注释】目标 KeyGroup 数量，用于 KeyBy 操作 */
     private final int numTargetKeyGroups;
 
     // - Runtime state --------------------------------------------------------

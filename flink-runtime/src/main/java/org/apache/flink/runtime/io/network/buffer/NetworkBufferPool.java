@@ -59,6 +59,29 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>The NetworkBufferPool creates {@link LocalBufferPool}s from which the individual tasks draw
  * the buffers for the network data transfer. When new local buffer pools are created, the
  * NetworkBufferPool dynamically redistributes the buffers between the pools.
+ *
+ * <p>【学习型注释】
+ * NetworkBufferPool 是 Flink 网络栈的全局内存缓冲池。
+ * 管理所有用于网络数据传输的 MemorySegment（内存段）。
+ *
+ * <p>两级缓冲池架构：
+ * 1. NetworkBufferPool（全局）：管理整个 TaskExecutor 的网络内存
+ * 2. LocalBufferPool（局部）：每个 Task 的 ResultPartition/InputGate 私有缓冲池
+ *    LocalBufferPool 从 NetworkBufferPool 动态借用/归还缓冲区
+ *
+ * <p>内存分配策略：
+ * - 启动时预分配固定数量的 MemorySegment（由配置决定）
+ * - 各 LocalBufferPool 按需申请，超出总量时排队等待
+ * - 动态再分配：当新 Task 启动时，重新均衡各 LocalBufferPool 的配额
+ *
+ * <p>背压（Backpressure）机制：
+ * 当 NetworkBufferPool 中没有可用缓冲区时，生产者线程阻塞等待，
+ * 形成自然的背压，防止快生产者压垮慢消费者。
+ *
+ * <p>关键配置：
+ * - taskmanager.memory.network.fraction：网络内存占比
+ * - taskmanager.memory.network.min/max：网络内存上下限
+ * - taskmanager.memory.segment-size：单个 MemorySegment 大小（默认 32KB）
  */
 public class NetworkBufferPool
         implements BufferPoolFactory, MemorySegmentProvider, AvailabilityProvider {
@@ -69,22 +92,29 @@ public class NetworkBufferPool
 
     private static final Logger LOG = LoggerFactory.getLogger(NetworkBufferPool.class);
 
+    /** 【注释】内存段总数（即缓冲区总数），启动时预分配 */
     private final int totalNumberOfMemorySegments;
 
+    /** 【注释】单个内存段大小，默认 32KB */
     private final int memorySegmentSize;
 
+    /** 【注释】可用内存段队列，空闲的缓冲区在此等待被申请 */
     private final ArrayDeque<MemorySegment> availableMemorySegments;
 
+    /** 【注释】是否已销毁 */
     private volatile boolean isDestroyed;
 
     // ---- Managed buffer pools ----------------------------------------------
 
     private final Object factoryLock = new Object();
 
+    /** 【注释】所有创建的 LocalBufferPool 集合 */
     private final Set<LocalBufferPool> allBufferPools = new HashSet<>();
 
+    /** 【注释】可调整大小的 LocalBufferPool 集合（用于动态再分配） */
     private final Set<LocalBufferPool> resizableBufferPools = new HashSet<>();
 
+    /** 【注释】所有 LocalBufferPool 要求的最小缓冲区总数 */
     private int numTotalRequiredBuffers;
 
     private final Duration requestSegmentsTimeout;

@@ -75,6 +75,30 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * The implementation of {@link ShuffleEnvironment} based on netty network communication, local
  * memory and disk files. The network environment contains the data structures that keep track of
  * all intermediate results and shuffle data exchanges.
+ *
+ * <p>【学习型注释】
+ * NettyShuffleEnvironment 是 Flink 基于 Netty 实现的 Shuffle 服务环境。
+ * 负责管理 Task 之间的数据交换（Shuffle），是流式作业数据传输的核心组件。
+ *
+ * <p>核心职责：
+ * 1. 管理网络缓冲池（NetworkBufferPool）：所有 Task 共享的内存缓冲区
+ * 2. 管理结果分区（ResultPartition）：Task 输出数据的存储位置
+ * 3. 管理输入门（InputGate）：Task 读取上游数据的入口
+ * 4. 管理网络连接（ConnectionManager）：基于 Netty 的远程数据传输
+ *
+ * <p>数据交换模式：
+ * - PIPELINED：流式模式，数据立即可消费（流式作业默认）
+ * - BLOCKING：阻塞模式，数据写完后才可消费（批处理作业）
+ * - HYBRID：混合模式，结合两者特点
+ *
+ * <p>网络缓冲管理：
+ * NetworkBufferPool 预分配固定大小的内存缓冲区（taskmanager.memory.network.*）
+ * ResultPartition 和 InputGate 从缓冲池申请/归还缓冲区
+ * 缓冲区不足时触发背压（Backpressure）
+ *
+ * <p>关键配置：
+ * - taskmanager.memory.network.fraction/min/max：网络缓冲内存配置
+ * - taskmanager.network.memory.buffers-per-channel：每个通道的缓冲区数
  */
 public class NettyShuffleEnvironment
         implements ShuffleEnvironment<ResultPartition, SingleInputGate> {
@@ -83,28 +107,40 @@ public class NettyShuffleEnvironment
 
     private final Object lock = new Object();
 
+    /** 【注释】TaskExecutor 的资源 ID */
     private final ResourceID taskExecutorResourceId;
 
+    /** 【注释】Shuffle 环境配置 */
     private final NettyShuffleEnvironmentConfiguration config;
 
+    /** 【注释】网络缓冲池，所有 Task 共享的内存池，缓冲区不足会触发背压 */
     private final NetworkBufferPool networkBufferPool;
 
+    /** 【注释】网络连接管理器，基于 Netty 实现远程数据传输 */
     private final ConnectionManager connectionManager;
 
+    /** 【注释】结果分区管理器，管理所有 Task 的输出分区 */
     private final ResultPartitionManager resultPartitionManager;
 
+    /** 【注释】文件通道管理器，用于溢写数据到磁盘（BLOCKING 模式） */
     private final FileChannelManager fileChannelManager;
 
+    /** 【注释】InputGate ID 到 InputGate 集合的映射 */
     private final Map<InputGateID, Set<SingleInputGate>> inputGatesById;
 
+    /** 【注释】结果分区工厂，创建 ResultPartition 实例 */
     private final ResultPartitionFactory resultPartitionFactory;
 
+    /** 【注释】InputGate 工厂，创建 SingleInputGate 实例 */
     private final SingleInputGateFactory singleInputGateFactory;
 
+    /** 【注释】IO 线程池执行器 */
     private final Executor ioExecutor;
 
+    /** 【注释】批处理 Shuffle 读取缓冲池（专用于批处理作业） */
     private final BatchShuffleReadBufferPool batchShuffleReadBufferPool;
 
+    /** 【注释】批处理 Shuffle 读取 IO 线程池 */
     private final ScheduledExecutorService batchShuffleReadIOExecutor;
 
     private boolean isClosed;

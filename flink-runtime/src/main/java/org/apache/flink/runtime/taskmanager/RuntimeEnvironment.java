@@ -61,7 +61,31 @@ import java.util.concurrent.Future;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** In implementation of the {@link Environment}. */
+/**
+ * In implementation of the {@link Environment}.
+ *
+ * <p>【学习型注释】
+ * RuntimeEnvironment 是 Task 执行时的运行时环境，为用户代码提供访问 Flink 运行时资源的入口。
+ *
+ * <p>核心职责：
+ * 封装 Task 执行所需的全部上下文信息，使用户代码与底层运行时解耦。
+ *
+ * <p>提供的关键资源：
+ * 1. 作业和任务元数据：jobId、taskInfo、executionConfig
+ * 2. 内存管理：memManager（托管内存分配）、sharedResources（共享资源如 RocksDB）
+ * 3. IO 管理：ioManager（磁盘溢写）、writers（输出）、inputGates（输入）
+ * 4. 状态管理：taskStateManager（状态访问和检查点）
+ * 5. 广播变量：bcVarManager
+ * 6. 类加载器：userCodeClassLoader
+ *
+ * <p>数据流通道：
+ * - ResultPartitionWriter[]：输出结果分区，向下游 Task 发送数据
+ * - IndexedInputGate[]：输入门，从上游 Task 接收数据
+ *
+ * <p>使用方式：
+ * 用户函数通过 RuntimeContext 间接访问 Environment 提供的服务。
+ * 例如：getRuntimeContext().getState() 底层依赖 taskStateManager。
+ */
 public class RuntimeEnvironment implements Environment {
 
     private final JobID jobId;
