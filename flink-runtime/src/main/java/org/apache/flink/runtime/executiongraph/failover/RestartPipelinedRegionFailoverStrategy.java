@@ -48,6 +48,26 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * A failover strategy that proposes to restart involved regions when a vertex fails. A region is
  * defined by this strategy as tasks that communicate via pipelined data exchange.
+ *
+ * <p>【学习型注释】
+ * RestartPipelinedRegionFailoverStrategy 是 Flink 流式作业的默认故障恢复策略。
+ * 当某个 Task 失败时，它会找出需要重启的最小 Task 集合，而非重启整个作业。
+ *
+ * <p>核心概念 - Pipelined Region：
+ * 由通过 PIPELINED 边（流式数据交换）连接的一组 Task 组成。
+ * 同一 Region 内的 Task 必须同时运行，因为数据是流式传递的，不会持久化。
+ *
+ * <p>恢复规则：
+ * 1. 失败 Task 所在的 Region 必须重启
+ * 2. 如果某个 Region 的输入分区不可用（丢失或损坏），生产该分区的 Region 也需重启
+ * 3. 如果某个 Region 需要重启，它的所有下游消费者 Region 也必须重启
+ *
+ * <p>与 Checkpoint 的配合：
+ * 重启后，Task 会从最近成功的 Checkpoint 恢复状态，保证 Exactly-Once 语义。
+ *
+ * <p>优势：
+ * 相比全量重启（RestartAllStrategy），Region 级别恢复可以显著减少故障影响范围，
+ * 特别是在大规模作业中，只需重启失败相关的部分 Task。
  */
 public class RestartPipelinedRegionFailoverStrategy implements FailoverStrategy {
 
@@ -102,6 +122,9 @@ public class RestartPipelinedRegionFailoverStrategy implements FailoverStrategy 
      * i.e. Missing or Corrupted, the region containing the partition producer task is involved 3.
      * If a region is involved, all of its consumer regions are involved
      *
+     * <p>【注释】获取失败后需要重启的 Task 集合。
+     * 计算逻辑：先定位失败 Task 所在的 Region，然后根据数据依赖关系递归扩展到所有受影响的 Region。
+     *
      * @param executionVertexId ID of the failed task
      * @param cause cause of the failure
      * @return set of IDs of vertices to restart
@@ -154,6 +177,12 @@ public class RestartPipelinedRegionFailoverStrategy implements FailoverStrategy 
      * result partition of an involved region is not available, i.e. Missing or Corrupted, the
      * region containing the partition producer task is involved 3. If a region is involved, all of
      * its consumer regions are involved
+     *
+     * <p>【注释】使用 BFS 算法遍历所有受影响的 Region：
+     * 1. 从失败 Region 开始入队
+     * 2. 对于每个 Region，检查其输入分区是否可用，不可用则将生产者 Region 加入队列
+     * 3. 将当前 Region 的所有消费者 Region 也加入队列
+     * 4. 最终返回所有需要重启的 Region 集合
      */
     private Set<SchedulingPipelinedRegion> getRegionsToRestart(
             SchedulingPipelinedRegion failedRegion) {
@@ -264,6 +293,13 @@ public class RestartPipelinedRegionFailoverStrategy implements FailoverStrategy 
     /**
      * A stateful {@link ResultPartitionAvailabilityChecker} which maintains the failed partitions
      * which are not available.
+     *
+     * <p>【注释】有状态的分区可用性检查器。
+     * 维护一个失败分区集合（failedPartitions），用于记录因 PartitionException 失败的分区。
+     * 判断分区是否可用的条件：
+     * 1. 分区未在失败列表中
+     * 2. 通过 Shuffle Master 检查分区确实存在
+     * 3. 分区类型支持重消费（isReconsumable）或是 PIPELINED_APPROXIMATE 类型
      */
     private static class RegionFailoverResultPartitionAvailabilityChecker
             implements ResultPartitionAvailabilityChecker {
