@@ -144,55 +144,65 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 
     public static final String RESOURCE_MANAGER_NAME = "resourcemanager";
 
-    /** Unique id of the resource manager. */
+    // ResourceManager 的唯一 ID
     private final ResourceID resourceId;
 
-    /** All currently registered JobMasterGateways scoped by JobID. */
+    // 当前已注册的 JobMaster 网关映射表 (按 JobID 索引)
     private final Map<JobID, JobManagerRegistration> jobManagerRegistrations;
 
-    /** All currently registered JobMasterGateways scoped by ResourceID. */
+    // 当前已注册的 JobMaster 网关映射表 (按 ResourceID 索引)
     private final Map<ResourceID, JobManagerRegistration> jmResourceIdRegistrations;
 
-    /** Service to retrieve the job leader ids. */
+    // 用于检索作业 Leader ID 的服务
     private final JobLeaderIdService jobLeaderIdService;
 
-    /** All currently registered TaskExecutors with their framework specific worker information. */
+    // 当前已注册的 TaskExecutor 及其对应的 Worker 信息
     private final Map<ResourceID, WorkerRegistration<WorkerType>> taskExecutors;
 
-    /** Ongoing registration of TaskExecutors per resource ID. */
+    // 正在进行的 TaskExecutor 注册对应的网关 Future
     private final Map<ResourceID, CompletableFuture<TaskExecutorGateway>>
             taskExecutorGatewayFutures;
 
+    // 心跳服务组件
     private final HeartbeatServices heartbeatServices;
 
-    /** Fatal error handler. */
+    // 致命错误处理器
     private final FatalErrorHandler fatalErrorHandler;
 
-    /** The slot manager maintains the available slots. */
+    // Slot 管理器，维护集群中可用 Slot 的状态
     private final SlotManager slotManager;
 
+    // 集群分区跟踪器
     private final ResourceManagerPartitionTracker clusterPartitionTracker;
 
+    // 集群基本信息
     private final ClusterInformation clusterInformation;
 
+    // ResourceManager 的度量指标组
     protected final ResourceManagerMetricGroup resourceManagerMetricGroup;
 
+    // IO 操作执行器
     protected final Executor ioExecutor;
 
+    // 标识资源管理器是否启动完成的 Future
     private final CompletableFuture<Void> startedFuture;
 
-    /** The heartbeat manager with task managers. */
+    // TaskManager 心跳管理器
     private HeartbeatManager<TaskExecutorHeartbeatPayload, Void> taskManagerHeartbeatManager;
 
-    /** The heartbeat manager with job managers. */
+    // JobManager 心跳管理器
     private HeartbeatManager<Void, Void> jobManagerHeartbeatManager;
 
+    // 授权令牌管理器
     private final DelegationTokenManager delegationTokenManager;
 
+    // 阻塞节点处理器，用于黑名单管理
     protected final BlocklistHandler blocklistHandler;
 
+    // 最新的授权令牌
     private final AtomicReference<byte[]> latestTokens = new AtomicReference<>();
 
+    // 资源分配器
     private final ResourceAllocator resourceAllocator;
 
     public ResourceManager(
