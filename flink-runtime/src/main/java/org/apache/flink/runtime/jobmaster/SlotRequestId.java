@@ -31,6 +31,14 @@ import org.apache.flink.util.AbstractID;
  * <p>This ID serves a different purpose than the {@link
  * org.apache.flink.runtime.clusterframework.types.AllocationID AllocationID}, which identifies the
  * request of a physical slot, issued from the SlotPool via the ResourceManager to the TaskManager.
+ *
+ * <p>【学习型注释】
+ * SlotRequestId 标识从 Execution 到 SlotPool 或 PhysicalSlotProvider 的 Slot 请求。
+ * 与 AllocationID 的区别：
+ * - SlotRequestId: Execution 向 SlotPool 请求 Slot 时使用，属于逻辑层
+ * - AllocationID: SlotPool 向 ResourceManager 请求物理 Slot 时使用，属于物理层
+ * 一个 SlotRequestId 可能对应多个 AllocationID（Slot Sharing 场景下多个 Task 共享 Slot）。
+ * 该 ID 继承自 AbstractID，提供全局唯一的标识能力。
  */
 public final class SlotRequestId extends AbstractID {
 

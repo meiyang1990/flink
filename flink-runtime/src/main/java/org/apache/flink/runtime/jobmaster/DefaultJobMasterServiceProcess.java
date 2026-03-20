@@ -54,6 +54,21 @@ import java.util.function.Function;
  *       JobMasterService}
  *   <li>{@link Exception} to signal an unexpected failure
  * </ul>
+ *
+ * <p>【学习型注释】DefaultJobMasterServiceProcess 是 JobMasterServiceProcess 的默认实现，负责管理和监控 JobMasterService 的生命周期。
+ *
+ * <p>核心职责：
+ * 1. 异步创建 JobMasterService（通过 JobMasterServiceFactory）
+ * 2. 监控 JobMasterService 的创建结果和运行状态
+ * 3. 处理作业完成信号（成功、失败、初始化失败）
+ * 4. 提供 JobMasterGateway 和 Leader 地址给外部访问
+ *
+ * <p>状态转换：
+ * - 初始状态：创建中（等待 jobMasterServiceFuture 完成）
+ * - 运行状态：JobMasterService 成功创建并运行
+ * - 终止状态：作业完成、失败或进程被关闭
+ *
+ * <p>线程安全：使用 synchronized (lock) 保护 isRunning 状态，确保并发关闭操作的正确性。
  */
 public class DefaultJobMasterServiceProcess
         implements JobMasterServiceProcess, OnCompletionActions {

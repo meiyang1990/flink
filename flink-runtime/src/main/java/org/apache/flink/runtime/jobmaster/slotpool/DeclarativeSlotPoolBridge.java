@@ -59,7 +59,20 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/** {@link SlotPool} implementation which uses the {@link DeclarativeSlotPool} to allocate slots. */
+/**
+ * {@link SlotPool} implementation which uses the {@link DeclarativeSlotPool} to allocate slots.
+ *
+ * <p>【学习型注释】DeclarativeSlotPoolBridge 是声明式Slot池的桥接实现，连接传统的 SlotPool 接口与新的
+ * DeclarativeSlotPool 声明式资源管理机制。它实现了从"请求-分配"模式到"声明-提供"模式的适配。
+ *
+ * <p>核心设计特点：
+ * 1. 支持两种分配策略：直接分配（deferSlotAllocation=false）和延迟分配（deferSlotAllocation=true）
+ * 2. 维护 pendingRequests（待处理请求）和 fulfilledRequests（已完成请求）两个映射表
+ * 3. 使用 RequestSlotMatchingStrategy 策略匹配请求与可用Slot
+ * 4. 支持批处理Slot的超时检查机制
+ *
+ * <p>延迟分配策略适用于流批一体场景，等待资源需求稳定后再统一分配，避免频繁的资源震荡。
+ */
 public class DeclarativeSlotPoolBridge extends DeclarativeSlotPoolService implements SlotPool {
 
     /** Helper class to represent the fulfilled allocation infromation. */

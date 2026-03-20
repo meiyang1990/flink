@@ -17,7 +17,15 @@
 
 package org.apache.flink.runtime.jobmaster;
 
-/** Possible states for the deployment of an execution. */
+/**
+ * Possible states for the deployment of an execution.
+ *
+ * <p>【学习型注释】
+ * ExecutionDeploymentState 定义了 Execution（Task 执行尝试）的部署状态：
+ * - PENDING: 部署请求已发送或即将发送，等待 TaskExecutor 确认
+ * - DEPLOYED: TaskExecutor 已确认部署，Task 正在运行
+ * 该状态用于跟踪 Task 从提交到实际运行的过程，是部署一致性检查的重要依据。
+ */
 public enum ExecutionDeploymentState {
     /** The deployment has or is about to be started. */
     PENDING,

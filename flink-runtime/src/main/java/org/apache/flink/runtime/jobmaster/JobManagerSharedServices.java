@@ -50,6 +50,16 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * Utility class which holds all auxiliary shared services used by the {@link JobMaster}.
  * Consequently, the {@link JobMaster} should never shut these services down.
+ *
+ * <p>【学习型注释】
+ * JobManagerSharedServices 持有 JobMaster 使用的所有辅助共享服务。
+ * 这些服务由外部（如 Dispatcher）创建并注入，JobMaster 只使用但不负责关闭：
+ * - futureExecutor: 用于执行异步任务的调度执行器
+ * - ioExecutor: 用于执行 I/O 操作的执行器（如文件读写、网络通信）
+ * - libraryCacheManager: 用户代码库缓存管理器，管理作业的 JAR 包和类加载器
+ * - shuffleMaster: Shuffle 服务主控，管理数据交换（网络传输）
+ * - blobWriter: 二进制大对象写入器，用于传输作业的 JAR 包和配置文件
+ * 通过共享这些服务，多个 JobMaster 可以复用资源，提高系统效率。
  */
 public class JobManagerSharedServices {
 

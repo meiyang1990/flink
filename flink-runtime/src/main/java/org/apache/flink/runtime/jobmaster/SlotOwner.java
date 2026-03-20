@@ -18,7 +18,18 @@
 
 package org.apache.flink.runtime.jobmaster;
 
-/** Interface for components that hold slots and to which slots get released / recycled. */
+/**
+ * Interface for components that hold slots and to which slots get released / recycled.
+ *
+ * <p>【学习型注释】
+ * SlotOwner 定义了 Slot 所有者的接口，负责接收和回收 LogicalSlot。
+ * 当 Execution 完成或失败时，其占用的 LogicalSlot 需要被释放回 SlotOwner（通常是 SlotPool）。
+ * SlotOwner 决定如何重新分配或回收该 Slot，可能：
+ * - 将 Slot 重新分配给其他等待的 Execution
+ * - 将 Slot 返回给 ResourceManager（如果不再需要）
+ * - 保留 Slot 以供同一 SlotSharingGroup 的其他 Task 使用
+ * 这是 Flink 资源管理中的关键回收机制。
+ */
 public interface SlotOwner {
 
     /**

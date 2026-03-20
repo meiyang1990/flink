@@ -23,7 +23,17 @@ import org.apache.flink.runtime.taskexecutor.ExecutionDeploymentReport;
 
 import java.util.Map;
 
-/** Component for reconciling the deployment state of executions. */
+/**
+ * Component for reconciling the deployment state of executions.
+ *
+ * <p>【学习型注释】
+ * ExecutionDeploymentReconciler 用于协调 JobMaster 和 TaskExecutor 之间的 Execution 部署状态。
+ * 在分布式环境下，由于网络延迟、节点故障等原因，双方对 Task 部署状态的认知可能出现不一致。
+ * 该组件通过对比期望状态与实际状态，发现并解决以下问题：
+ * - 孤儿任务：TaskExecutor 上有 JobMaster 不知道的 Task 在运行
+ * - 丢失部署：JobMaster 认为应该运行的 Task 在 TaskExecutor 上不存在
+ * 通过定期协调，确保作业执行状态的最终一致性。
+ */
 public interface ExecutionDeploymentReconciler {
 
     /** Factory for {@link ExecutionDeploymentReconciler}. */

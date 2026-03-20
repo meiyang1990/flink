@@ -30,6 +30,14 @@ import javax.annotation.Nullable;
 
 import java.util.UUID;
 
+/**
+ * Default implementation of {@link JobMasterServiceProcessFactory}.
+ *
+ * <p>【学习型注释】DefaultJobMasterServiceProcessFactory 是 JobMasterServiceProcess 的默认工厂实现。
+ * 它持有作业的基本信息（JobID、名称、类型、Checkpoint设置等），用于创建 DefaultJobMasterServiceProcess。
+ * 当 Leader 选举成功时，通过 create() 方法创建进程；当作业失败时，通过 createArchivedExecutionGraph()
+ * 创建存档的执行图，保留作业的终态信息用于诊断和展示。
+ */
 public class DefaultJobMasterServiceProcessFactory implements JobMasterServiceProcessFactory {
 
     private final JobID jobId;

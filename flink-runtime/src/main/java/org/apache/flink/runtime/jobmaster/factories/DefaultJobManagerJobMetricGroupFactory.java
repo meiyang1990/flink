@@ -27,6 +27,10 @@ import javax.annotation.Nonnull;
 /**
  * Default implementation of {@link JobManagerJobMetricGroupFactory} which creates for a given
  * {@link ExecutionPlan} a {@link JobManagerJobMetricGroup}.
+ *
+ * <p>【学习型注释】DefaultJobManagerJobMetricGroupFactory 是默认的作业指标组工厂实现。
+ * 它将创建的 JobManagerJobMetricGroup 注册到父级 JobManagerMetricGroup 中，形成指标层级结构。
+ * 这样设计的目的是实现指标的命名空间管理，便于后续查询和聚合（如按JobManager->Job->Task层级统计）。
  */
 public class DefaultJobManagerJobMetricGroupFactory implements JobManagerJobMetricGroupFactory {
 

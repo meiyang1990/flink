@@ -45,6 +45,13 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+/**
+ * Default implementation of {@link JobMasterServiceFactory}.
+ *
+ * <p>【学习型注释】DefaultJobMasterServiceFactory 是 JobMasterServiceFactory 的默认实现类，负责组装和创建 JobMaster 实例。
+ * 它持有 JobMaster 所需的所有依赖组件（RPC服务、配置、执行计划、高可用服务等），在创建时将它们注入到 JobMaster 中。
+ * 这种工厂模式使得 JobMaster 的创建与使用分离，便于测试和扩展。
+ */
 public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
 
     private final Executor executor;

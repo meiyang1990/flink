@@ -82,8 +82,25 @@ import java.util.function.Function;
  * expectation that the scheduler will subsequently decrease the requirements by that amount.
  *
  * <p>2) The declarative approach (used by the AdaptiveScheduler) in contrast derives requirements
- * exclusively based on what a given job currently requires. It may repeatedly reserve/free slots
+ * exclusively based on what a given job currently needs. It may repeatedly reserve/free slots
  * without any modifications to the requirements.
+ *
+ * <p>【学习型注释】DefaultDeclarativeSlotPool 是声明式Slot池的默认实现，是 Flink 声明式资源管理的核心组件。
+ *
+ * <p>核心概念理解：
+ * - <b>声明式（Declarative）</b>：与命令式（请求特定Slot）不同，声明式只告知 ResourceManager "我需要什么资源"，
+ *   由 ResourceManager 决定 "从哪里提供"。这类似于 Kubernetes 的声明式配置理念。
+ *
+ * <p>资源管理流程：
+ * 1. 调度器声明资源需求（increase/decreaseResourceRequirementsBy）
+ * 2. Slot池将需求上报给 ResourceManager（doDeclareResourceRequirements）
+ * 3. TaskManager 提供 Slot 时，匹配需求并接收（offerSlots/registerSlots）
+ * 4. 调度器预留Slot（reserveFreeSlot），使用完成后释放（freeReservedSlot）
+ * 5. 空闲Slot超时后归还 TaskManager（releaseIdleSlots）
+ *
+ * <p>两种使用模式：
+ * - 传统模式：请求和释放一一对应，资源需求随Slot占用动态增减
+ * - 声明式模式（AdaptiveScheduler）：资源需求独立计算，Slot可反复预留/释放而不影响需求声明
  */
 public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
 

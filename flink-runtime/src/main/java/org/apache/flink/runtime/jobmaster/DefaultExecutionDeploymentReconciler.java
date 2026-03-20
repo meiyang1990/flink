@@ -29,6 +29,17 @@ import java.util.Set;
  * Default {@link ExecutionDeploymentReconciler} implementation. Detects missing/unknown
  * deployments, and defers to a provided {@link ExecutionDeploymentReconciliationHandler} to resolve
  * them.
+ *
+ * <p>【学习型注释】
+ * DefaultExecutionDeploymentReconciler 是 ExecutionDeploymentReconciler 的默认实现，
+ * 负责检测和处理 JobMaster 与 TaskExecutor 之间的部署状态不一致问题。
+ * 核心逻辑：
+ * - 对比 JobMaster 期望的部署状态（expectedDeployedExecutions）与 TaskExecutor 实际报告的状态（executionDeploymentReport）
+ * - 识别两类不一致：
+ *   1. unknownExecutions: TaskExecutor 报告了 JobMaster 不知道的 Execution（可能是孤儿任务）
+ *   2. missingExecutions: JobMaster 期望部署但 TaskExecutor 未报告的 Execution（部署丢失）
+ * - 通过 ExecutionDeploymentReconciliationHandler 回调处理这些不一致情况
+ * 这种协调机制确保分布式环境下作业状态的一致性。
  */
 public class DefaultExecutionDeploymentReconciler implements ExecutionDeploymentReconciler {
 

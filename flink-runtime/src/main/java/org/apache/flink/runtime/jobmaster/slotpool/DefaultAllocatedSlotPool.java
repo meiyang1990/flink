@@ -37,7 +37,25 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/** Default {@link AllocatedSlotPool} implementation. */
+/**
+ * Default {@link AllocatedSlotPool} implementation.
+ *
+ * <p>【学习型注释】DefaultAllocatedSlotPool 是 AllocatedSlotPool 的默认实现，负责管理已分配的Slot集合。
+ * 它是声明式Slot池（DefaultDeclarativeSlotPool）的内部组件，维护以下核心数据结构：
+ *
+ * <p>1. registeredSlots: AllocationID -> AllocatedSlot 映射，存储所有已注册的Slot
+ * 2. freeSlots: 空闲Slot跟踪器，记录Slot何时变为空闲（用于超时检测）
+ * 3. slotsPerTaskExecutor: ResourceID -> Set<AllocationID> 映射，按TaskManager索引Slot
+ *
+ * <p>主要职责：
+ * - Slot的添加、移除、预留和释放
+ * - 维护Slot与TaskManager的归属关系
+ * - 提供空闲Slot跟踪（用于空闲超时后归还）
+ * - 计算TaskManager的Slot利用率
+ *
+ * <p>状态管理：Slot有三种状态 - 未注册、空闲（Free）、预留（Reserved），
+ * 通过 freeSlots 集合区分空闲与预留状态。
+ */
 public class DefaultAllocatedSlotPool implements AllocatedSlotPool {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultAllocatedSlotPool.class);

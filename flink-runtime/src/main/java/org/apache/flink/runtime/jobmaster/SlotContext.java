@@ -23,6 +23,12 @@ import org.apache.flink.runtime.jobmanager.slots.TaskManagerGateway;
 /**
  * Interface for the context of a {@link LogicalSlot}. This context contains information about the
  * underlying allocated slot and how to communicate with the TaskManager on which it was allocated.
+ *
+ * <p>【学习型注释】
+ * SlotContext 是 LogicalSlot 的上下文接口，提供了访问底层 Slot 信息和与 TaskManager 通信的能力。
+ * 它继承自 SlotInfo，扩展了获取 TaskManagerGateway 的方法，使得上层组件（如 Execution）
+ * 可以通过 LogicalSlot 与 TaskExecutor 进行 RPC 通信。
+ * 这是连接调度层（Scheduler）和执行层（TaskExecutor）的关键抽象。
  */
 public interface SlotContext extends SlotInfo {
 

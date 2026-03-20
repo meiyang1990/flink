@@ -50,6 +50,16 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * SerializedThrowable} when the job failed.
  *
  * <p>This is used by the {@link JobMaster} to send the results to the {@link Dispatcher}.
+ *
+ * <p>【学习型注释】
+ * JobResult 封装了作业执行的最终结果，用于 JobMaster 向 Dispatcher 汇报作业完成情况。
+ * 包含的信息：
+ * - 作业基本信息：JobID、JobName、ApplicationID
+ * - 执行状态：JobStatus（成功、失败、取消等）
+ * - 时间信息：开始时间、结束时间、净运行时间
+ * - 累积器结果：用户定义的累积器（Accumulator）数据
+ * - 异常信息：作业失败时的异常堆栈（SerializedThrowable）
+ * 该类是可序列化的，便于在网络中传输和持久化存储。
  */
 public class JobResult implements Serializable {
 

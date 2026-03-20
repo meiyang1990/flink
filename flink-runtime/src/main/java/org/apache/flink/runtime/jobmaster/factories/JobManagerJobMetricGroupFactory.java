@@ -23,7 +23,13 @@ import org.apache.flink.streaming.api.graph.ExecutionPlan;
 
 import javax.annotation.Nonnull;
 
-/** Factory interface for {@link JobManagerJobMetricGroup}. */
+/**
+ * Factory interface for {@link JobManagerJobMetricGroup}.
+ *
+ * <p>【学习型注释】JobManagerJobMetricGroupFactory 是 JobManagerJobMetricGroup 的工厂接口。
+ * 用于为每个 ExecutionPlan（执行计划）创建对应的作业级度量指标组。
+ * 通过工厂模式，可以在不同的部署环境中灵活配置指标收集策略（如是否注册到指标系统）。
+ */
 public interface JobManagerJobMetricGroupFactory {
 
     /**

@@ -25,7 +25,23 @@ import javax.annotation.Nullable;
 
 import java.util.Objects;
 
-/** The result of the {@link JobManagerRunner}. */
+/**
+ * The result of the {@link JobManagerRunner}.
+ *
+ * <p>【学习型注释】JobManagerRunnerResult 封装了 JobManagerRunner 的执行结果，是作业执行终态的不可变数据对象。
+ *
+ * <p>结果类型：
+ * 1. 成功（isSuccess=true）：作业正常完成（FINISHED/CANCELED/FAILED），failure 为 null
+ * 2. 初始化失败（isInitializationFailure=true）：JobMaster 初始化时发生异常，failure 不为 null
+ *
+ * <p>设计要点：
+ * - 不可变性：所有字段为 final，通过工厂方法创建，保证线程安全
+ * - 包含 ExecutionGraphInfo：即使失败也包含存档的执行图信息，用于诊断
+ * - 明确区分成功与失败：避免使用 null 表示状态，提供明确的查询方法
+ *
+ * <p>使用场景：JobManagerRunner 将结果返回给 JobManagerServiceLeadershipRunner，
+ * 后者根据结果类型决定是完成作业、重试还是宣告失败。
+ */
 public final class JobManagerRunnerResult {
 
     private final ExecutionGraphInfo executionGraphInfo;

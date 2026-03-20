@@ -27,7 +27,13 @@ import javax.annotation.Nullable;
 
 import java.util.UUID;
 
-/** Factory for the {@link JobMasterServiceProcess}. */
+/**
+ * Factory for the {@link JobMasterServiceProcess}.
+ *
+ * <p>【学习型注释】JobMasterServiceProcessFactory 是 JobMasterServiceProcess 的工厂接口。
+ * 在高可用架构中，当 JobManager 获得 Leadership 时，需要通过此工厂创建 JobMasterServiceProcess
+ * 来管理作业的整个生命周期。同时提供创建 ArchivedExecutionGraph 的能力，用于作业结束后保存状态。
+ */
 public interface JobMasterServiceProcessFactory {
 
     /**

@@ -27,7 +27,18 @@ import org.apache.flink.util.Preconditions;
 
 import java.time.Duration;
 
-/** Configuration for the {@link JobMaster}. */
+/**
+ * Configuration for the {@link JobMaster}.
+ *
+ * <p>【学习型注释】
+ * JobMasterConfiguration 封装了 JobMaster 运行所需的配置参数。
+ * 主要配置项包括：
+ * - rpcTimeout: RPC 调用超时时间，影响与 ResourceManager、TaskExecutor 通信的容错性
+ * - slotRequestTimeout: Slot 请求超时时间，决定申请资源的最大等待时间
+ * - tmpDirectory: 临时目录路径，用于存储作业运行期间的临时文件
+ * - retryingRegistrationConfiguration: 重试注册配置，控制向 ResourceManager 注册的重试策略
+ * 这些配置直接影响 JobMaster 的稳定性、资源获取能力和故障恢复能力。
+ */
 public class JobMasterConfiguration {
 
     private final Duration rpcTimeout;

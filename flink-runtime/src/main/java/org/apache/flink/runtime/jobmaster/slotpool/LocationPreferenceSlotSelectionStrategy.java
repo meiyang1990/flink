@@ -36,6 +36,24 @@ import java.util.function.Supplier;
 
 /**
  * This class implements a {@link SlotSelectionStrategy} that is based on location preference hints.
+ *
+ * <p>【学习型注释】LocationPreferenceSlotSelectionStrategy 是基于位置偏好提示的Slot选择策略抽象类。
+ * 它实现了数据本地性优化的核心逻辑，是 Flink 计算向数据移动（而非数据向计算移动）策略的体现。
+ *
+ * <p>本地性级别（由高到低）：
+ * 1. LOCAL: Slot所在TaskManager与数据输入位置完全一致（最佳）
+ * 2. HOST_LOCAL: Slot与数据在同一物理主机（次优，避免跨机架传输）
+ * 3. NON_LOCAL: Slot与数据不在同一主机（需要网络传输）
+ *
+ * <p>选择逻辑：
+ * 1. 首先检查是否有位置偏好（locationPreferences），如无则调用 selectWithoutLocationPreference
+ * 2. 如有位置偏好，构建 ResourceID 和 FQDN 的权重索引
+ * 3. 遍历所有可用Slot，计算候选分数（由子类实现 calculateCandidateScore）
+ * 4. 选择分数最高的Slot
+ *
+ * <p>子类实现：
+ * - DefaultLocationPreferenceSlotSelectionStrategy: 默认实现，优先本地性，兼顾负载均衡
+ * - EvenlySpreadOutLocationPreferenceSlotSelectionStrategy: 均匀分布策略，避免热点
  */
 public abstract class LocationPreferenceSlotSelectionStrategy implements SlotSelectionStrategy {
 

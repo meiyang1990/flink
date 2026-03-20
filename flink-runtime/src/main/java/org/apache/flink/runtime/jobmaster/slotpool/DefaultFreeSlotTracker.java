@@ -30,7 +30,20 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Default implements of {@link FreeSlotTracker}. */
+/**
+ * Default implements of {@link FreeSlotTracker}.
+ *
+ * <p>【学习型注释】DefaultFreeSlotTracker 是空闲Slot跟踪器的默认实现，采用函数式依赖注入设计。
+ * 它不直接维护Slot数据，而是通过外部提供的查找函数（Function）按需查询，保持数据一致性。
+ *
+ * <p>核心设计：
+ * - 仅维护 freeSlots 集合（AllocationID集合），表示哪些Slot是空闲的
+ * - 通过 physicalSlotLookup 函数获取Slot详细信息
+ * - 通过 freeSlotInfoLookup 函数获取空闲时间和利用率
+ *
+ * <p>这种设计避免了数据冗余和同步问题，因为Slot的真实状态始终由 AllocatedSlotPool 维护。
+ * 本类只是提供了一个针对空闲Slot的视图层。
+ */
 public class DefaultFreeSlotTracker implements FreeSlotTracker {
     private final Set<AllocationID> freeSlots;
     private final Function<AllocationID, PhysicalSlot> physicalSlotLookup;

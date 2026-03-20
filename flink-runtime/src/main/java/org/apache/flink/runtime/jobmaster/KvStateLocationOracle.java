@@ -29,6 +29,14 @@ import java.util.concurrent.CompletableFuture;
  * Oracle for {@link KvStateLocation} in the cluster. In order to answer {@link InternalKvState}
  * location requests, the {@link TaskExecutor} have to register and unregister their respective
  * key-value states at the oracle.
+ *
+ * <p>【学习型注释】
+ * KvStateLocationOracle 是可查询状态（Queryable State）的位置服务接口。
+ * 它提供了查询 Key-Value 状态位置的能力，支持外部客户端查询 Flink 作业的内部状态：
+ * - TaskExecutor 在启动时会将本地的 KvState 注册到 JobMaster
+ * - 外部客户端通过 requestKvStateLocation 查询状态的存储位置
+ * - JobMaster 返回 KvStateLocation，包含 TaskExecutor 的地址和状态信息
+ * 这是 Flink 可查询状态功能的核心组件，允许外部系统实时读取流处理作业的状态。
  */
 public interface KvStateLocationOracle {
 

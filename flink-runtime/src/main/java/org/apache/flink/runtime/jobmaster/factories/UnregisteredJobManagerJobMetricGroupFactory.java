@@ -27,6 +27,10 @@ import javax.annotation.Nonnull;
 /**
  * {@link JobManagerJobMetricGroupFactory} which returns an unregistered {@link
  * JobManagerJobMetricGroup}.
+ *
+ * <p>【学习型注释】UnregisteredJobManagerJobMetricGroupFactory 是一个单例工厂，返回未注册的指标组。
+ * 使用场景：当不需要实际收集指标时（如测试环境、指标功能被禁用时），使用此工厂避免不必要的性能开销。
+ * 采用枚举单例模式（INSTANCE），确保全局唯一且线程安全。
  */
 public enum UnregisteredJobManagerJobMetricGroupFactory implements JobManagerJobMetricGroupFactory {
     INSTANCE;

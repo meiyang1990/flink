@@ -22,7 +22,18 @@ import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 
-/** Interface that provides basic information in the context of a slot. */
+/**
+ * Interface that provides basic information in the context of a slot.
+ *
+ * <p>【学习型注释】
+ * SlotInfo 提供了 Slot 的基本信息接口，是 SlotContext 的父接口。
+ * 包含的关键信息：
+ * - AllocationID: Slot 分配的唯一标识
+ * - TaskManagerLocation: TaskManager 的位置信息（主机、端口等）
+ * - PhysicalSlotNumber: Slot 在 TaskManager 上的物理编号
+ * - ResourceProfile: Slot 的资源配置（CPU、内存等）
+ * 该接口被 LogicalSlot 和 PhysicalSlot 实现，为调度器提供统一的 Slot 信息访问方式。
+ */
 public interface SlotInfo {
 
     /**

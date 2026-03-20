@@ -25,7 +25,16 @@ import java.io.Serializable;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** Information about an allocated slot which is owned by a JobMaster. */
+/**
+ * Information about an allocated slot which is owned by a JobMaster.
+ *
+ * <p>【学习型注释】
+ * AllocatedSlotInfo 封装了 JobMaster 拥有的已分配 Slot 的基本信息。
+ * 它用于在 AllocatedSlotReport 中传递 Slot 信息，包含：
+ * - slotIndex: Slot 在 TaskManager 上的索引位置
+ * - allocationId: Slot 分配的唯一标识符
+ * 该类是可序列化的，便于在 JobMaster 和 TaskExecutor 之间传输。
+ */
 public class AllocatedSlotInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;

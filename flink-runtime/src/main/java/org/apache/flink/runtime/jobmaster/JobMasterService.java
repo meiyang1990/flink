@@ -22,7 +22,17 @@ import org.apache.flink.util.AutoCloseableAsync;
 
 import java.util.concurrent.CompletableFuture;
 
-/** Interface which specifies the JobMaster service. */
+/**
+ * Interface which specifies the JobMaster service.
+ *
+ * <p>【学习型注释】
+ * JobMasterService 定义了 JobMaster 服务的核心接口。
+ * 它是 JobMaster 运行时的抽象表示，提供以下功能：
+ * - getGateway(): 获取 JobMasterGateway，用于接收外部 RPC 调用
+ * - getAddress(): 获取服务地址，其他组件通过该地址连接到 JobMaster
+ * - getTerminationFuture(): 获取终止 Future，用于监听服务终止状态
+ * 实现类（如 JobMaster）通过该接口对外暴露服务能力，同时隐藏内部实现细节。
+ */
 public interface JobMasterService extends AutoCloseableAsync {
 
     /**

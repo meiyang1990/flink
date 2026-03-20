@@ -34,7 +34,23 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** The provider serves physical slot requests. */
+/**
+ * The provider serves physical slot requests.
+ *
+ * <p>【学习型注释】PhysicalSlotProviderImpl 是物理Slot请求的提供者实现，是调度器与SlotPool之间的中间层。
+ *
+ * <p>核心职责：
+ * 1. 接收来自调度器的 PhysicalSlotRequest 集合（批量请求）
+ * 2. 首先尝试从现有空闲Slot中分配（tryAllocateFromAvailable）
+ * 3. 如无法满足，则向SlotPool请求新Slot（requestNewSlot）
+ * 4. 使用 SlotSelectionStrategy 选择最优Slot（考虑数据本地性）
+ *
+ * <p>分配策略：
+ * - 流式任务：使用 requestNewAllocatedSlot 长期持有Slot
+ * - 批处理任务：使用 requestNewAllocatedBatchSlot，允许超时释放
+ *
+ * <p>这种分层设计使得 SlotPool 的具体实现（声明式/传统）对上层调度器透明。
+ */
 public class PhysicalSlotProviderImpl implements PhysicalSlotProvider {
     private static final Logger LOG = LoggerFactory.getLogger(PhysicalSlotProviderImpl.class);
 
