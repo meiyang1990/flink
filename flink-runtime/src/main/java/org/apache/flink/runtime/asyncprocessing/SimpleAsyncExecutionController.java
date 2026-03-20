@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -32,6 +33,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 /** The {@link SimpleAsyncExecutionController} is responsible for handling simple runnable tasks. */
+// 【学习型注释】简单的异步执行控制器实现，专门用于处理基于 Runnable 的任务。
+// 它通过内部 TaskExecutor 将任务提交到线程池执行，将简单的任务执行逻辑适配到 AEC 的异步状态处理框架中。
 public class SimpleAsyncExecutionController<K>
         extends AsyncExecutionController<K, SimpleAsyncExecutionController.RunnableTask<K, ?>> {
 

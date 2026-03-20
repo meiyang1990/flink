@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -35,6 +36,9 @@ import org.apache.flink.core.asyncprocessing.AsyncFutureImpl;
  * <li>Please refer to {@code ContextStateFutureImplTest} where the reference counting is carefully
  *     tested.
  */
+// 【学习型注释】带上下文的异步 Future 实现，将 RecordContext 与 Future 生命周期绑定。
+// 核心逻辑是基于 FLIP-425 进行引用计数管理：确保异步回调执行期间，关联的 RecordContext 不被意外释放，
+// 直到所有回调链完成。
 public class ContextAsyncFutureImpl<T> extends AsyncFutureImpl<T> {
 
     private final RecordContext<?> recordContext;

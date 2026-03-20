@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -37,6 +38,11 @@ import java.util.function.Consumer;
  *
  * @param <K> The type of the key inside the record.
  */
+// 【学习型注释】记录上下文（RecordContext），承载异步处理中一条记录及其所有关联操作的状态信息。
+// 它是异步执行模型的“状态容器”：
+// 1. 持有记录数据、关联的 Key 及对应的 KeyGroup。
+// 2. 维护该记录所属的 Epoch 和处理优先级。
+// 3. 使用引用计数来管理自身生命周期，在计数归零时触发 disposer 回收资源（如释放 Key 锁、通知 Epoch）。
 public class RecordContext<K> extends ReferenceCounted<RecordContext.DisposerRunner> {
     /** The empty record for non-record input usage. */
     static final Object EMPTY_RECORD = new Object();

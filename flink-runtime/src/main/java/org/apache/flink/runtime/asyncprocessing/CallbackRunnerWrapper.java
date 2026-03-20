@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,6 +29,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * A {@link AsyncFutureImpl.CallbackRunner} that gives info of {@link #isHasMail()} to the AEC and
  * notifies new mail if needed.
  */
+// 【学习型注释】回调运行器包装类，适配 MailboxExecutor 以便在 AEC 中追踪异步回调任务。
+// 它维护了当前 pending 的回调任务计数，当计数从 0 变 1 时触发通知，告知 AEC 有新 mail 到达。
 public class CallbackRunnerWrapper {
 
     private final MailboxExecutor mailboxExecutor;
