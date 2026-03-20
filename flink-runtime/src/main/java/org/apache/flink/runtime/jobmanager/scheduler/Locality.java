@@ -18,6 +18,16 @@
 
 package org.apache.flink.runtime.jobmanager.scheduler;
 
+/**
+ * 【学习型注释】
+ * Locality 枚举定义了 Task 调度时的数据本地性级别。
+ * 数据本地性是大数据计算框架的重要优化手段，尽量让计算靠近数据，减少网络传输：
+ * - UNCONSTRAINED: 无约束，可调度到任意位置
+ * - LOCAL: 最理想情况，Task 与数据在同一 TaskManager 进程内
+ * - HOST_LOCAL: 较好情况，Task 与数据在同一物理主机上
+ * - NON_LOCAL: 较差情况，Task 被调度到了偏好位置之外
+ * - UNKNOWN: 未知状态，没有提供本地性信息
+ */
 public enum Locality {
 
     /** No constraint existed on the task placement. */

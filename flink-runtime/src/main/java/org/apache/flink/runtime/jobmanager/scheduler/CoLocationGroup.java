@@ -31,6 +31,12 @@ import java.util.List;
  *
  * <p>The co-location group is used to make sure that the i-th subtasks for iteration head and
  * iteration tail are scheduled on the same TaskManager.
+ *
+ * <p>【学习型注释】
+ * CoLocationGroup 是一种强约束机制，要求同一组 JobVertex 的第 i 个 subtask 必须运行在相同的 TaskManager 上。
+ * 主要应用场景：
+ * - 迭代计算：确保迭代头（iteration head）和迭代尾（iteration tail）在同一节点，避免跨网络的数据传输。
+ * - 与 SlotSharingGroup 不同，这是硬约束，调度器必须满足，否则任务无法启动。
  */
 public interface CoLocationGroup {
 

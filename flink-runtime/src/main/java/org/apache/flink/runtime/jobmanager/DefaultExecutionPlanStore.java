@@ -53,6 +53,11 @@ import static org.apache.flink.util.Preconditions.checkState;
  * StateHandleStore}, we could persist the execution plans to various distributed storage. Also
  * combined with different {@link ExecutionPlanStoreWatcher}, we could get all the changes on the
  * execution plan store and do the response.
+ *
+ * <p>【学习型注释】
+ * DefaultExecutionPlanStore 是 ExecutionPlanStore 的默认实现，支持高可用模式下的执行计划持久化。
+ * 它通过组合不同的 StateHandleStore（如 ZK、文件系统等）将执行计划存储到分布式存储中，
+ * 并通过 ExecutionPlanStoreWatcher 监听存储变化，实现作业状态的自动恢复。
  */
 public class DefaultExecutionPlanStore<R extends ResourceVersion<R>>
         implements ExecutionPlanStore, ExecutionPlanStore.ExecutionPlanListener {

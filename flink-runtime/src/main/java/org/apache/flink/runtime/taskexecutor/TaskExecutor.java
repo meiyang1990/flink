@@ -198,6 +198,15 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * TaskExecutor implementation. The task executor is responsible for the execution of multiple
  * {@link Task}.
+ *
+ * <p>【学习型注释】
+ * TaskExecutor（即 TaskManager 进程中的核心角色）是 Flink 真正执行计算任务的地方。
+ * 其核心职责包括：
+ * 1. 注册与心跳：启动后向 ResourceManager 注册自己，并定期上报心跳及可用资源（Slot）。
+ * 2. 任务管理：响应 JobMaster 的请求，部署 (Submit Task)、启动、停止具体的 Task。
+ * 3. 资源（Slot）管理：管理分配给它的资源，响应 JobMaster 的 Slot 申请。
+ * 4. 状态与 Checkpoint 协同：在本地协调 Task 的状态快照和 Checkpoint 触发。
+ * 5. 数据交换管理：集成 Shuffle Environment，支持上游 Task 和下游 Task 间的数据网络传输。
  */
 public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
@@ -655,6 +664,16 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     // Task lifecycle RPCs
     // ----------------------------------------------------------------------
 
+    /**
+     * <p>【学习型注释】
+     * 接收 JobMaster 发来的任务部署请求，在本地分配资源并启动 Task 线程。
+     * 核心流程：
+     * 1. 验证：校验 JobManager 连接是否有效、分配的 Slot 是否依然有效。
+     * 2. 加载描述符：反序列化 TaskDeploymentDescriptor，获取任务及 Job 的各种定义信息。
+     * 3. 准备运行环境：分配网络缓存（Shuffle Environment）、初始化本地状态存储（TaskLocalStateStore）、构造类加载器等。
+     * 4. 实例化 Task 对象：它是封装了具体算子逻辑的可运行实体（Runnable）。
+     * 5. 启动 Task 线程：通过 `task.startTaskThread()` 将其投入线程池执行。
+     */
     @Override
     public CompletableFuture<Acknowledge> submitTask(
             TaskDeploymentDescriptor tdd, JobMasterId jobMasterId, Duration timeout) {

@@ -29,7 +29,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** A {@link CoLocationGroup} implementation. */
+/**
+ * A {@link CoLocationGroup} implementation.
+ *
+ * <p>【学习型注释】
+ * CoLocationGroupImpl 是 CoLocationGroup 接口的具体实现。
+ * 它维护一组 JobVertex，确保这些顶点中相同索引位置的 subtask 被调度到同一个 Slot。
+ * 主要用于迭代计算场景，保证迭代头和迭代尾在同一 TaskManager 上运行。
+ */
 public class CoLocationGroupImpl implements CoLocationGroup, java.io.Serializable {
 
     private static final long serialVersionUID = -2605819490401895297L;

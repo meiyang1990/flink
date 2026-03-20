@@ -28,7 +28,14 @@ import org.apache.flink.util.concurrent.FutureUtils;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-/** Allows to store and remove execution plans. */
+/**
+ * Allows to store and remove execution plans.
+ *
+ * <p>【学习型注释】
+ * ExecutionPlanWriter 定义了执行计划的写入和删除操作接口。
+ * 它是 ExecutionPlanStore 的父接口，提供了保存执行计划、更新资源需求以及清理资源的方法。
+ * 继承的 LocallyCleanableResource 和 GloballyCleanableResource 接口支持在 Dispatcher 或 JobManager 关闭时进行资源清理。
+ */
 public interface ExecutionPlanWriter extends LocallyCleanableResource, GloballyCleanableResource {
     /**
      * Adds the {@link ExecutionPlan} instance.

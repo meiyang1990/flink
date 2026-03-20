@@ -24,6 +24,12 @@ package org.apache.flink.runtime.jobmanager.scheduler;
  * <p>Currently, we support that all input locations have to be taken into consideration and only
  * those which are known at scheduling time. Note that if all input locations are considered, then
  * the scheduling operation can potentially take a while until all inputs have locations assigned.
+ *
+ * <p>【学习型注释】
+ * LocationPreferenceConstraint 定义了调度时如何处理输入数据的位置偏好：
+ * - ALL: 必须等待所有上游输入都确定了位置后才进行调度，能获得更好的数据本地性，但可能增加调度延迟
+ * - ANY: 只考虑已经确定位置的输入，调度更快但可能牺牲部分数据本地性
+ * 这是 Flink 调度器在延迟与数据本地性之间的权衡策略。
  */
 public enum LocationPreferenceConstraint {
     ALL, // wait for all inputs to have a location assigned

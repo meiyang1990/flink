@@ -30,6 +30,13 @@ import org.apache.flink.configuration.HighAvailabilityOptions;
  * the responsibilities of the old leader - FACTORY_CLASS: Use implementation of {@link
  * org.apache.flink.runtime.highavailability.HighAvailabilityServicesFactory} specified in
  * configuration property high-availability
+ *
+ * <p>【学习型注释】
+ * 高可用模式枚举，定义了 Flink 集群在不同部署环境下的容错机制：
+ * - NONE: 单点模式，无高可用保障，JobManager 故障会导致所有作业失败
+ * - ZOOKEEPER: 基于 ZooKeeper 的 Leader 选举，适用于 YARN、Standalone 等部署模式
+ * - KUBERNETES: 基于 Kubernetes 原生机制的高可用
+ * - FACTORY_CLASS: 允许用户通过配置自定义高可用服务实现
  */
 public enum HighAvailabilityMode {
     NONE(false),

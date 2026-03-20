@@ -23,6 +23,11 @@ import org.apache.flink.api.common.JobID;
 /**
  * ExecutionPlanStore utility interfaces. For example, convert a name(e.g. ZooKeeper path, key name
  * in Kubernetes ConfigMap) to {@link JobID}, or vice versa.
+ *
+ * <p>【学习型注释】
+ * ExecutionPlanStoreUtil 提供了 JobID 与外部存储名称之间的转换工具接口。
+ * 在高可用模式下，执行计划需要存储到外部系统（如 ZooKeeper、Kubernetes ConfigMap），
+ * 该接口定义了如何将 JobID 映射为存储系统的键名（如 ZK 路径），以及反向解析。
  */
 public interface ExecutionPlanStoreUtil {
 

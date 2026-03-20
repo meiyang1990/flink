@@ -26,6 +26,12 @@ package org.apache.flink.runtime.jobmanager;
  * <p><strong>Important</strong>: The {@link ExecutionPlanStoreWatcher} could not guarantee that
  * there is no {@link ExecutionPlanStore.ExecutionPlanListener} callbacks happen after {@link
  * #stop()}. So the implementor is responsible for filtering out these spurious callbacks.
+ *
+ * <p>【学习型注释】
+ * ExecutionPlanStoreWatcher 用于监视执行计划存储的变化。
+ * 在高可用模式下，当其他 JobManager 实例添加或删除执行计划时，
+ * 当前实例需要通过 Watcher 机制感知这些变化，以便进行作业恢复或状态同步。
+ * 实现类包括 ZooKeeperExecutionPlanStoreWatcher（基于 ZK 监听）等。
  */
 public interface ExecutionPlanStoreWatcher {
 

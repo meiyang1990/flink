@@ -25,7 +25,16 @@ import javax.annotation.Nullable;
 
 import java.util.Collection;
 
-/** {@link ExecutionPlan} instances for recovery. */
+/**
+ * {@link ExecutionPlan} instances for recovery.
+ *
+ * <p>【学习型注释】
+ * ExecutionPlanStore 负责持久化存储 ExecutionPlan（执行计划），用于 JobManager 故障恢复。
+ * 当 JobManager 发生故障重启时，可以从存储中恢复之前提交的作业执行计划，保证作业状态不丢失。
+ * 实现类包括：
+ * - StandaloneExecutionPlanStore：单机模式下的内存/文件存储
+ * - ZooKeeperExecutionPlanStore：基于 ZK 的高可用存储（分布式模式）
+ */
 public interface ExecutionPlanStore extends ExecutionPlanWriter {
 
     /** Starts the {@link ExecutionPlanStore} service. */

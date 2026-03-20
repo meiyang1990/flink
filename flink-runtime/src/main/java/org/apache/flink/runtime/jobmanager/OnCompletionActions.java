@@ -21,7 +21,14 @@ package org.apache.flink.runtime.jobmanager;
 import org.apache.flink.runtime.jobmaster.JobMaster;
 import org.apache.flink.runtime.scheduler.ExecutionGraphInfo;
 
-/** Interface for completion actions once a Flink job has reached a terminal state. */
+/**
+ * Interface for completion actions once a Flink job has reached a terminal state.
+ *
+ * <p>【学习型注释】
+ * OnCompletionActions 定义了作业到达终态后的回调接口。
+ * 当作业成功完成、失败或被取消时，JobMaster 会通过这个接口通知上层组件进行后续处理，
+ * 如清理资源、记录作业结果、触发保存点等操作。
+ */
 public interface OnCompletionActions {
 
     /**

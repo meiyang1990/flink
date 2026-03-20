@@ -20,7 +20,17 @@ package org.apache.flink.runtime.jobmanager.scheduler;
 
 import org.apache.flink.runtime.JobException;
 
-/** Indicates resource allocation failures. */
+/**
+ * Indicates resource allocation failures.
+ *
+ * <p>【学习型注释】
+ * 当 Flink 集群没有足够的 Slot 资源来运行作业时抛出此异常。
+ * 常见原因：
+ * - TaskManager 数量不足或 Slot 配置过少
+ * - 作业并行度过高，超过了可用 Slot 总数
+ * - 其他作业占用了大量 Slot 资源
+ * 解决方案：增加 TaskManager、调整 slot.number 配置，或降低作业并行度。
+ */
 public class NoResourceAvailableException extends JobException {
 
     private static final long serialVersionUID = -2249953165298717803L;

@@ -36,7 +36,18 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-/** Task manager gateway interface to communicate with the task manager. */
+/**
+ * Task manager gateway interface to communicate with the task manager.
+ *
+ * <p>【学习型注释】
+ * TaskManagerGateway 是 JobManager 与 TaskManager 通信的网关接口。
+ * 它封装了所有从 JobManager 发往 TaskManager 的 RPC 调用，包括：
+ * - 提交 Task (submitTask)
+ * - 触发 Checkpoint (triggerCheckpoint)
+ * - 更新 Partition 信息 (updatePartitions)
+ * - 释放 Slot (freeSlot)
+ * 通过 Gateway 模式，JobManager 无需关心 TaskManager 的具体位置，只需通过 RPC 框架发送消息即可。
+ */
 public interface TaskManagerGateway extends TaskExecutorOperatorEventGateway {
 
     /**

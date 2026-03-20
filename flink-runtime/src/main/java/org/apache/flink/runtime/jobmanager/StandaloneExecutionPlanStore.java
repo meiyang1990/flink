@@ -30,6 +30,11 @@ import java.util.Collections;
  *
  * <p>All operations are NoOps, because {@link ExecutionPlan} instances cannot be recovered in this
  * recovery mode.
+ *
+ * <p>【学习型注释】
+ * StandaloneExecutionPlanStore 是单机模式（无高可用）下的空实现。
+ * 由于单机模式下 JobManager 故障后无法恢复，因此所有持久化操作都是空操作（NoOp）。
+ * 这减少了单机部署时的不必要的存储开销。
  */
 public class StandaloneExecutionPlanStore implements ExecutionPlanStore {
 

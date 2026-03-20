@@ -34,7 +34,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/** JobManager utils to calculate {@link JobManagerProcessSpec} and JVM args. */
+/**
+ * JobManager utils to calculate {@link JobManagerProcessSpec} and JVM args.
+ *
+ * <p>【学习型注释】
+ * JobManagerProcessUtils 提供了计算 JobManager 内存规格和 JVM 参数的工具方法。
+ * 它根据用户配置（如总内存、堆内存等）计算出详细的内存分配方案，
+ * 包括 JVM 堆内存、非堆内存、元空间和开销等，用于生成 JobManager 启动参数。
+ */
 public class JobManagerProcessUtils {
 
     static final ProcessMemoryOptions JM_PROCESS_MEMORY_OPTIONS =

@@ -20,7 +20,16 @@ package org.apache.flink.runtime.jobmanager;
 
 import org.apache.flink.runtime.highavailability.JobResultStore;
 
-/** Factory for components that are responsible for persisting a job for recovery. */
+/**
+ * Factory for components that are responsible for persisting a job for recovery.
+ *
+ * <p>【学习型注释】
+ * JobPersistenceComponentFactory 是作业持久化组件的工厂接口。
+ * 在高可用模式下，Flink 需要将作业的执行计划和结果持久化，以便 JobManager 故障后能够恢复。
+ * 该工厂负责创建两类核心组件：
+ * - ExecutionPlanStore: 存储作业执行计划
+ * - JobResultStore: 存储作业执行结果
+ */
 public interface JobPersistenceComponentFactory {
 
     /**

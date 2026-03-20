@@ -26,6 +26,11 @@ import org.apache.flink.util.function.SupplierWithException;
 /**
  * {@link JobPersistenceComponentFactory} implementation which creates a {@link ExecutionPlanStore}
  * using the provided {@link HighAvailabilityServices}.
+ *
+ * <p>【学习型注释】
+ * HaServicesJobPersistenceComponentFactory 是基于高可用服务的作业持久化组件工厂实现。
+ * 它使用 HighAvailabilityServices 来创建 ExecutionPlanStore 和 JobResultStore，
+ * 确保在高可用模式下作业状态和结果能够正确持久化到分布式存储（如 ZooKeeper）。
  */
 public class HaServicesJobPersistenceComponentFactory implements JobPersistenceComponentFactory {
     private final HighAvailabilityServices highAvailabilityServices;

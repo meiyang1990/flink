@@ -624,15 +624,18 @@ public class CheckpointCoordinator {
     private void startTriggeringCheckpoint(CheckpointTriggerRequest request) {
         try {
             synchronized (lock) {
+                // 预检前置状态（例如：Job 是否处于 RUNNING 状态，距离上次 Checkpoint 时间是否过短等）
                 preCheckGlobalState(request.isPeriodic);
             }
 
             // we will actually trigger this checkpoint!
+            // 确保当前没有正在触发中的 Checkpoint（防止并发触发带来的状态冲突）
             Preconditions.checkState(!isTriggering);
             isTriggering = true;
 
             final long timestamp = System.currentTimeMillis();
 
+            // 1. 计算出本次 Checkpoint 需要涉及的所有 Source Tasks, Acknowledge Tasks 和 Commit Tasks
             CompletableFuture<CheckpointPlan> checkpointPlanFuture =
                     checkpointPlanCalculator.calculateCheckpointPlan();
 
@@ -641,6 +644,7 @@ public class CheckpointCoordinator {
 
             CompletableFuture<Void> masterTriggerCompletionPromise = new CompletableFuture<>();
 
+            // 2. 核心异步链（Future 链式调用）：从分配 ID 开始，直到创建 PendingCheckpoint
             final CompletableFuture<PendingCheckpoint> pendingCheckpointCompletableFuture =
                     checkpointPlanFuture
                             .thenApplyAsync(
@@ -649,6 +653,7 @@ public class CheckpointCoordinator {
                                             // this must happen outside the coordinator-wide lock,
                                             // because it communicates with external services
                                             // (in HA mode) and may block for a while.
+                                            // 从持久化存储（如 ZK/ETCD）申请全局递增的 Checkpoint ID
                                             long checkpointID =
                                                     checkpointIdCounter.getAndIncrement();
                                             return new Tuple2<>(plan, checkpointID);
@@ -659,6 +664,7 @@ public class CheckpointCoordinator {
                                     executor)
                             .thenApplyAsync(
                                     (checkpointInfo) ->
+                                            // 在内存中构建该次 Checkpoint 的上下文对象，用于接收 Task 的 ACK
                                             createPendingCheckpoint(
                                                     timestamp,
                                                     request.props,
@@ -669,11 +675,13 @@ public class CheckpointCoordinator {
                                                     masterTriggerCompletionPromise),
                                     timer);
 
+            // 3. 为 Coordinator 触发快照逻辑，并记录 Checkpoint 存储路径
             final CompletableFuture<?> coordinatorCheckpointsComplete =
                     pendingCheckpointCompletableFuture
                             .thenApplyAsync(
                                     pendingCheckpoint -> {
                                         try {
+                                            // 初始化底层存储文件目录（如 HDFS / S3 路径）
                                             CheckpointStorageLocation checkpointStorageLocation =
                                                     initializeCheckpointLocation(
                                                             pendingCheckpoint.getCheckpointID(),
@@ -699,6 +707,7 @@ public class CheckpointCoordinator {
                                             pendingCheckpoint.setCheckpointTargetLocation(
                                                     checkpointInfo.f1);
                                         }
+                                        // 触发所有 OperatorCoordinator 的 checkpoint（如 Kafka source 的分发状态记录）
                                         return OperatorCoordinatorCheckpoints
                                                 .triggerAndAcknowledgeAllCoordinatorCheckpointsWithCompletion(
                                                         coordinatorsToCheckpoint,
@@ -711,6 +720,7 @@ public class CheckpointCoordinator {
             // has completed.
             // This is to ensure the tasks are checkpointed after the OperatorCoordinators in case
             // ExternallyInducedSource is used.
+            // 4. 调用用户/系统注册的 Master Hooks，执行外部状态的联动记录
             final CompletableFuture<?> masterStatesComplete =
                     coordinatorCheckpointsComplete.thenComposeAsync(
                             ignored -> {
@@ -735,6 +745,7 @@ public class CheckpointCoordinator {
                     CompletableFuture.allOf(masterStatesComplete, coordinatorCheckpointsComplete),
                     masterTriggerCompletionPromise);
 
+            // 5. 待上述准备（ID申请、路径创建、Coordinator和Master状态快照）全部成功后，正式下发 Barrier
             FutureUtils.assertNoException(
                     masterTriggerCompletionPromise
                             .handleAsync(
@@ -749,12 +760,14 @@ public class CheckpointCoordinator {
 
                                         if (throwable != null) {
                                             // the initialization might not be finished yet
+                                            // 处理准备阶段的各类异常，将 Checkpoint 标记为失败并抛出
                                             if (checkpoint == null) {
                                                 onTriggerFailure(request, throwable);
                                             } else {
                                                 onTriggerFailure(checkpoint, throwable);
                                             }
                                         } else {
+                                            // 进入下一环节：向 ExecutionGraph 中的各个 Source Task 广播 barrier
                                             triggerCheckpointRequest(
                                                     request, timestamp, checkpoint);
                                         }
@@ -832,6 +845,7 @@ public class CheckpointCoordinator {
         // no exception, no discarding, everything is OK
         final long checkpointId = checkpoint.getCheckpointID();
 
+        // 决定本次 Checkpoint 的类型（增量/全量、Savepoint等）
         final SnapshotType type;
         if (this.forceFullSnapshot && !request.props.isSavepoint()) {
             type = FULL_CHECKPOINT;
@@ -839,6 +853,7 @@ public class CheckpointCoordinator {
             type = request.props.getCheckpointType();
         }
 
+        // 构建需要传递给 Task 的配置参数，包括精确一次语义、Unaligned Checkpoint 支持等
         final CheckpointOptions checkpointOptions =
                 CheckpointOptions.forConfig(
                         type,
@@ -849,12 +864,16 @@ public class CheckpointCoordinator {
 
         // send messages to the tasks to trigger their checkpoints
         List<CompletableFuture<Acknowledge>> acks = new ArrayList<>();
+        // 遍历需要触发 Checkpoint 的源头节点（Sources）
+        // 通过 Execution (执行顶点实体) 的 RPC 接口，向 TaskExecutor 上的具体 Task 发送 Trigger 消息 (Barrier)
         for (Execution execution : checkpoint.getCheckpointPlan().getTasksToTrigger()) {
             if (request.props.isSynchronous()) {
+                // 如果是需要停机的同步 Savepoint
                 acks.add(
                         execution.triggerSynchronousSavepoint(
                                 checkpointId, timestamp, checkpointOptions));
             } else {
+                // 常规的异步 Checkpoint/Savepoint
                 acks.add(execution.triggerCheckpoint(checkpointId, timestamp, checkpointOptions));
             }
         }
@@ -1194,6 +1213,10 @@ public class CheckpointCoordinator {
      * Receives an AcknowledgeCheckpoint message and returns whether the message was associated with
      * a pending checkpoint.
      *
+     * <p>【学习型注释】
+     * 接收来自 TaskManager (具体为某个 Task) 的 Checkpoint 确认消息 (ACK)。
+     * 当 Task 完成其本地的状态快照并将其写入持久化存储后，会将对应的状态句柄 (State Handle) 封装在此消息中汇报给 JobManager。
+     *
      * @param message Checkpoint ack from the task manager
      * @param taskManagerLocationInfo The location of the acknowledge checkpoint message's sender
      * @return Flag indicating whether the ack'd checkpoint was associated with a pending
@@ -1226,6 +1249,7 @@ public class CheckpointCoordinator {
                 return false;
             }
 
+            // 根据 ID 查找对应的“未完成的” Checkpoint
             final PendingCheckpoint checkpoint = pendingCheckpoints.get(checkpointId);
 
             if (message.getSubtaskState() != null) {
@@ -1235,6 +1259,9 @@ public class CheckpointCoordinator {
                 // 2. removed eventually upon checkpoint subsumption (or job cancellation)
                 // Do not register savepoints' shared state, as Flink is not in charge of
                 // savepoints' lifecycle
+                // 将汇报上来的增量共享状态（如 RocksDB 的 sst 文件）注册到 SharedStateRegistry，
+                // 以便通过引用计数等方式进行统一生命周期管理，即使该 Checkpoint 因为超时等原因最终失败，
+                // 迟到的状态只要还在使用，也需要被正确注册，防止被意外删除。
                 if (checkpoint == null || !checkpoint.getProps().isSavepoint()) {
                     message.getSubtaskState()
                             .registerSharedStates(
@@ -1245,6 +1272,7 @@ public class CheckpointCoordinator {
 
             if (checkpoint != null && !checkpoint.isDisposed()) {
 
+                // 将该 Task 的状态句柄记录到 PendingCheckpoint 中
                 switch (checkpoint.acknowledgeTask(
                         message.getTaskExecutionId(),
                         message.getSubtaskState(),
@@ -1257,6 +1285,7 @@ public class CheckpointCoordinator {
                                 message.getJob(),
                                 taskManagerLocationInfo);
 
+                        // 核心判断：如果所有的 Task（以及 OperatorCoordinator）都已成功 ACK，则将该 Checkpoint 标记为完成
                         if (checkpoint.isFullyAcknowledged()) {
                             completePendingCheckpoint(checkpoint);
                         }
