@@ -25,6 +25,23 @@ import java.util.Set;
 /** New interface for failover strategies. */
 public interface FailoverStrategy {
 
+    /** 【学习型注释】
+     * FailoverStrategy 定义了 Flink 作业失败时的恢复策略接口。
+     *
+     * <p>核心职责：
+     * 当某个 Task 执行失败时，决定需要重启哪些相关的 Task。
+     * 不同的策略会影响故障恢复的范围和效率。
+     *
+     * <p>实现类：
+     * - RestartPipelinedRegionStrategy：重启失败Task所在的整个Pipelined区域（流式作业默认）
+     * - FullRecoveryStrategy：故障时重启所有Task（批处理场景）
+     * - RegionFailoverStrategy：基于Region的故障恢复，优化重启范围
+     *
+     * <p>设计考量：
+     * 故障恢复策略需要在「重启范围小（快速恢复）」和「数据一致性（正确性）」之间权衡。
+     * 对于流式作业，通常采用 Pipeline 边连接的区域作为恢复单元。
+     */
+
     /**
      * Returns a set of IDs corresponding to the set of vertices that should be restarted.
      *

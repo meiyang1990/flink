@@ -43,6 +43,22 @@ import java.util.concurrent.Executor;
  * <p>In order to free resources and avoid resource leaks, idling task managers (task managers whose
  * slots are currently not used) and pending slot requests time out triggering their release and
  * failure, respectively.
+ *
+ * <p>【学习型注释】
+ * SlotManager 是 ResourceManager 内部的 Slot 状态管理中心，负责维护所有注册的 TaskManager Slot。
+ *
+ * <p>核心职责：
+ * 1. Slot 注册与注销：跟踪所有 TaskExecutor 注册的 Slot 及其状态（free/allocated）
+ * 2. 请求匹配：接收 JobMaster 的 Slot 申请请求，尝试匹配可用的 Slot
+ * 3. 资源分配：决定将哪些 Slot 分配给哪个作业
+ * 4. 超时管理：释放空闲的 TaskManager 和超时未满足的请求，避免资源泄漏
+ * 5. 状态报告：向 ResourceManager 汇报集群资源使用情况
+ *
+ * <p>实现类：
+ * - FineGrainedSlotManager：细粒度 Slot 管理，支持按需分配单个 Slot
+ *
+ * <p>设计考量：
+ * SlotManager 需要高效地匹配 Slot 请求和可用资源，同时处理并发访问和超时逻辑。
  */
 public interface SlotManager extends AutoCloseable {
 

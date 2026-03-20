@@ -71,6 +71,24 @@ import java.util.concurrent.CompletableFuture;
  *
  * <p>Implementations can expect that methods will not be invoked concurrently. In fact, all
  * invocations will originate from a thread in the {@link ComponentMainThreadExecutor}.
+ *
+ * <p>【学习型注释】
+ * SchedulerNG 是 Flink 作业调度器的核心接口，负责将作业图转换为执行图并管理任务的生命周期。
+ *
+ * <p>核心职责：
+ * 1. 作业部署：接收 JobGraph，创建 ExecutionGraph，部署 ExecutionVertex 到 Slot
+ * 2. 任务调度：协调任务的启动、取消、失败恢复等
+ * 3. 资源管理：与 SlotPool 交互，申请和释放 Slot 资源
+ * 4. 状态跟踪：跟踪作业执行状态，响应 TaskExecutionState 更新
+ * 5. Checkpoint 协调：与 CheckpointCoordinator 协作触发检查点
+ *
+ * <p>实现类：
+ * - DefaultScheduler：传统调度器，适合流式作业
+ * - AdaptiveScheduler：自适应调度器，支持批处理动态并行度调整
+ * - StreamingScheduler：流式专用调度器
+ *
+ * <p>线程模型：
+ * 所有调度器方法都在 JobManager 主线程执行，无需额外的线程同步。
  */
 public interface SchedulerNG extends GlobalFailureHandler, AutoCloseableAsync {
 

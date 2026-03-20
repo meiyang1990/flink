@@ -118,6 +118,24 @@ import static org.apache.flink.util.Preconditions.checkState;
  * therefore use atomic state updates and occasional double-checking to ensure that the state after
  * a completed call is as expected, and trigger correcting actions if it is not. Many actions are
  * also idempotent (like canceling).
+ *
+ * <p>【学习型注释】
+ * Execution 是单个 Task 执行尝试的封装，是 Flink 任务执行状态跟踪的核心类。
+ *
+ * <p>关键概念：
+ * - ExecutionVertex 可以执行多次（故障恢复、重算、重配置），每次执行对应一个 Execution 实例
+ * - ExecutionAttemptID 唯一标识一次执行尝试，用于 JobManager 与 TaskManager 之间的所有通信
+ * - 实现 LogicalSlot.Payload 接口，作为 Slot 的负载与 Slot 生命周期关联
+ *
+ * <p>无锁状态转换：
+ * Execution 采用原子状态更新和双重检查来处理并发，避免远程调用阻塞导致的死锁。
+ * 这是一种性能优化，但也增加了代码复杂度（需要处理各种边界情况）。
+ *
+ * <p>核心职责：
+ * - 跟踪 Task 执行状态（CANCELED/CANCELING/CREATED/DEPLOYING/FAILED/FINISHED/INITIALIZING/RUNNING/SCHEDULED）
+ * - 管理 Task 的部署和取消流程
+ * - 处理 Checkpoint 触发和完成通知
+ * - 收集和汇报执行指标
  */
 public class Execution
         implements AccessExecution, Archiveable<ArchivedExecution>, LogicalSlot.Payload {

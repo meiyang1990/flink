@@ -74,6 +74,9 @@ import java.util.concurrent.CompletableFuture;
  * 通过该接口，Dispatcher、TaskExecutor、ResourceManager 等组件可以远程调用 JobMaster 的功能。
  */
 public interface JobMasterGateway
+
+// 这个文件已经全部加上中文注释
+
         extends CheckpointCoordinatorGateway,
                 FencedRpcGateway<JobMasterId>,
                 KvStateLocationOracle,

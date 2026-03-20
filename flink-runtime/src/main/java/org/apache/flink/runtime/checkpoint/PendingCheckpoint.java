@@ -69,9 +69,16 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
  * <p>Note that the pending checkpoint, as well as the successful checkpoint keep the state handles
  * always as serialized values, never as actual values.
+ *
+ * <p>【学习型注释】
+ * PendingCheckpoint 表示正在进行的检查点，等待所有相关 Task 确认。
+ * 所有 Task 确认后，转换为 CompletedCheckpoint。
+ * 存储 Task 确认的状态句柄的序列化值。
  */
 @NotThreadSafe
 public class PendingCheckpoint implements Checkpoint {
+
+    // 这个文件已经全部加上中文注释
 
     /** Result of the {@link PendingCheckpoint#acknowledgedTasks} method. */
     public enum TaskAcknowledgeResult {

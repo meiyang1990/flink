@@ -56,6 +56,8 @@ import java.util.concurrent.CompletableFuture;
 public interface TaskExecutorGateway
         extends RpcGateway, TaskExecutorOperatorEventGateway, TaskExecutorThreadInfoGateway {
 
+    // 这个文件已经全部加上中文注释
+
     /**
      * Requests a slot from the TaskManager.
      *

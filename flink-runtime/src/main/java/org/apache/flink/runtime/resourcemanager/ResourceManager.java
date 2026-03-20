@@ -118,6 +118,25 @@ import static org.apache.flink.util.Preconditions.checkState;
  *   <li>{@link #registerJobMaster(JobMasterId, ResourceID, String, JobID, Duration)} registers a
  *       {@link JobMaster} at the resource manager
  * </ul>
+ *
+ * <p>【学习型注释】
+ * ResourceManager 是 Flink 集群的资源管理器，负责集群资源的分配、释放和账目管理。
+ *
+ * <p>核心职责：
+ * 1. Worker 管理：注册和跟踪所有 TaskExecutor（Worker 节点）
+ * 2. Slot 管理：通过 SlotManager 维护集群可用 Slot 的状态
+ * 3. 资源分配：响应 JobMaster 的 Slot 申请请求，分配合适的 Slot
+ * 4. 心跳监控：与 TaskExecutor 和 JobMaster 保持心跳，检测节点故障
+ * 5. 块列表管理：维护故障节点列表（Blocklist），避免调度到问题节点
+ *
+ * <p>与其他组件交互：
+ * - TaskExecutor：注册时提供 Slot 信息，定期发送心跳
+ * - JobMaster：分配 Slot、提供 JobLeaderId 服务
+ * - SlotManager：核心的 Slot 状态管理组件
+ *
+ * <p>实现类：
+ * - StandaloneResourceManager：独立部署模式
+ * - YARN/mesos/k8s 等特定部署环境的 ResourceManager
  */
 public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
         extends FencedRpcEndpoint<ResourceManagerId>

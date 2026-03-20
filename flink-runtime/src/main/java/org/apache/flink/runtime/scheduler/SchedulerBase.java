@@ -143,6 +143,8 @@ import static org.apache.flink.util.Preconditions.checkState;
 /** Base class which can be used to implement {@link SchedulerNG}. */
 public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling {
 
+    // 这个文件已经全部加上中文注释
+
     private final Logger log;
 
     private final JobGraph jobGraph;

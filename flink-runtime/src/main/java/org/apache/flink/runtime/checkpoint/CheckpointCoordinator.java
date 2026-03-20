@@ -97,6 +97,26 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * triggers the checkpoint by sending the messages to the relevant tasks and collects the checkpoint
  * acknowledgements. It also collects and maintains the overview of the state handles reported by
  * the tasks that acknowledge the checkpoint.
+ *
+ * <p>【学习型注释】
+ * CheckpointCoordinator 是 Flink 分布式快照的核心协调者，负责协调整个作业的检查点流程。
+ *
+ * <p>核心职责：
+ * 1. 触发检查点：定时或按需向所有 Source 节点发送 checkpoint 触发消息
+ * 2. 协调分布式快照：管理各 Task 的检查点状态，确保所有相关 Operator 同步完成快照
+ * 3. 结果收集：收集各 Task 确认的 state handle，维护检查点元数据
+ * 4. 状态持久化：将检查点元数据持久化到 HA 存储
+ * 5. 检查点管理：维护历史检查点列表，支持检查点清理和恢复
+ *
+ * <p>检查点类型：
+ * - CHECKPOINT：周期性触发的增量检查点
+ * - SAVEPOINT：用户手动触发的完全检查点，用于作业迁移或重启
+ *
+ * <p>与其他组件交互：
+ * - JobMaster：协调整个作业的检查点流程
+ * - TaskExecutor：执行本地状态的快照
+ * - StateBackend：管理状态的存储后端（rocksdb/heap）
+ * - CompletedCheckpointStore：存储已完成的检查点元信息
  */
 public class CheckpointCoordinator {
 

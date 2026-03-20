@@ -42,6 +42,24 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/***
+ * 【学习型注释】
+ * IntermediateResult 表示 JobGraph 中 IntermediateDataSet 的运行时表示，是生产者和消费者之间的数据交换抽象。
+ *
+ * <p>核心概念：
+ * - producer：产生此中间结果的任务顶点（ExecutionJobVertex）
+ * - partitions：中间结果分区数组，每个分区对应一个并行实例的输出
+ * - numParallelProducers：并行生产者数量
+ * - resultType：结果分区类型（PIPELINED/BLOCKING/UNLIMITED）
+ *
+ * <p>数据交换模式：
+ * - PIPELINED：流式传输，数据边计算边传递（如流式作业）
+ * - BLOCKING：批式传输，需要等待所有数据完成才传递（如批处理作业）
+ *
+ * <p>分区管理：
+ * IntermediateResultPartition 数组存储每个并行实例的输出分区，
+ * 用于跟踪分区状态和协调生产者和消费者。
+ */
 public class IntermediateResult {
 
     private final IntermediateDataSet intermediateDataSet;

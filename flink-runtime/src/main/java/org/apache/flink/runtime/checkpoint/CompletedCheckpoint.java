@@ -75,9 +75,16 @@ import static org.apache.flink.util.Preconditions.checkState;
  * checkpoint in a file system, that pointer is the file path to the checkpoint's folder or the
  * metadata file. For a state backend that stores metadata in database tables, the pointer could be
  * the table name and row key. The pointer is encoded as a String.
+ *
+ * <p>【学习型注释】
+ * CompletedCheckpoint 存储检查点完成后的完整元数据，包括检查点 ID、时间戳、各 Task 的状态句柄。
+ * 状态句柄是指向实际状态数据的指针（如文件路径），而非状态本身。
+ * 元数据持久化到外部存储，用于故障恢复时读取状态。
  */
 @NotThreadSafe
 public class CompletedCheckpoint implements Serializable, Checkpoint {
+
+    // 这个文件已经全部加上中文注释
 
     private static final Logger LOG = LoggerFactory.getLogger(CompletedCheckpoint.class);
 

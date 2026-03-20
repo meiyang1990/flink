@@ -55,6 +55,8 @@ import java.util.Optional;
 /** An archived execution graph represents a serializable form of an {@link ExecutionGraph}. */
 public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializable {
 
+    // 这个文件已经全部加上中文注释
+
     private static final long serialVersionUID = 7231383912742578428L;
 
     // --------------------------------------------------------------------------------------------

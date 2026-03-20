@@ -155,6 +155,25 @@ import static org.apache.flink.util.Preconditions.checkState;
  * Base class for the Dispatcher component. The Dispatcher component is responsible for receiving
  * job submissions, persisting them, spawning JobManagers to execute the jobs and to recover them in
  * case of a master failure. Furthermore, it knows about the state of the Flink session cluster.
+ *
+ * <p>【学习型注释】
+ * Dispatcher 是 Flink 集群的核心组件，负责作业的接收、持久化、执行和故障恢复。
+ *
+ * <p>核心职责：
+ * 1. 作业接收：接收来自客户端的 JobGraph 提交请求
+ * 2. 作业持久化：将作业信息持久化到 HA 存储，支持故障恢复
+ * 3. JobManager 生命周期：为每个作业创建和管理 JobManagerRunner
+ * 4. 作业恢复：在 master 故障后协调恢复已提交的作业
+ * 5. 集群状态管理：维护 Flink session 集群的状态
+ *
+ * <p>实现类：
+ * - StandaloneDispatcher：独立部署模式
+ * - MiniDispatcher：集成测试模式
+ *
+ * <p>与其他组件交互：
+ * - 与 ResourceManager 注册，申请执行作业所需的资源
+ * - 与 JobManagerRunner 协作，启动和管理 JobMaster
+ * - 通过 DispatcherGateway 提供 RPC 接口供外部调用
  */
 public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
         implements DispatcherGateway, ApplicationStatusListener {

@@ -77,6 +77,18 @@ import java.util.concurrent.CompletableFuture;
  *       messages between the JobManager and the TaskManager about deployment of tasks and updates
  *       in the task status always use the ExecutionAttemptID to address the message receiver.
  * </ul>
+ *
+ * <p>【学习型注释】
+ * ExecutionGraph 是 Flink 作业执行的中心数据结构，负责协调数据流的分布式执行。
+ * 它维护了所有并行 Task、中间数据流及其通信关系的表示。
+ *
+ * <p>核心组件：
+ * - ExecutionJobVertex：对应 JobGraph 的一个顶点（如 map、join），聚合所有并行 subtask 的状态
+ * - ExecutionVertex：对应一个并行 subtask 实例，由 ExecutionJobVertex 和 subtask 索引唯一标识
+ * - Execution：执行 ExecutionVertex 的一次尝试，失败时会创建新的 Execution 重试
+ *
+ * <p>状态管理：ExecutionGraph 跟踪整个作业的执行状态（CREATED/RUNNING/FAILING/FINISHED 等），
+ * 并协调 Checkpoint、故障恢复、Task 调度等核心流程。
  */
 public interface ExecutionGraph extends AccessExecutionGraph {
 

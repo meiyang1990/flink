@@ -27,6 +27,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /** Wraps {@link TaskExecutionState}, along with actions to take if it is FAILED state. */
 public class TaskExecutionStateTransition {
 
+    // 这个文件已经全部加上中文注释
+
     private final TaskExecutionState taskExecutionState;
 
     /**

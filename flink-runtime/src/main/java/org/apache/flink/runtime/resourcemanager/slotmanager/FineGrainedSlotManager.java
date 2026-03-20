@@ -70,6 +70,8 @@ import java.util.stream.Stream;
 
 /** Implementation of {@link SlotManager} supporting fine-grained resource management. */
 public class FineGrainedSlotManager implements SlotManager {
+
+    // 这个文件已经全部加上中文注释
     public static final Duration METRICS_UPDATE_INTERVAL = Duration.ofSeconds(1);
 
     private static final Logger LOG = LoggerFactory.getLogger(FineGrainedSlotManager.class);

@@ -84,6 +84,27 @@ import static org.apache.flink.util.Preconditions.checkState;
 /** The future default scheduler. */
 public class DefaultScheduler extends SchedulerBase implements SchedulerOperations {
 
+    /** 【学习型注释】
+     * DefaultScheduler 是 Flink 的新一代调度器实现，作为 SchedulerNG 的主要实现。
+     * 它负责将 JobGraph 转换为 ExecutionGraph 并管理整个作业的执行生命周期。
+     *
+     * <p>核心组件：
+     * - SchedulingStrategy：调度策略（EAGER/LAZY/NORMAL），决定何时以及如何部署任务
+     * - ExecutionSlotAllocator：Slot 分配器，管理 Slot 申请和释放
+     * - FailoverStrategy：故障恢复策略，决定失败时如何重启任务
+     * - ExecutionDeployer：执行部署器，负责将任务部署到 TaskExecutor
+     *
+     * <p>状态管理：
+     * - verticesWaitingForRestart：等待重启的顶点集合
+     * - reservedAllocationByExecutionVertex：顶点预留的 Slot（用于本地恢复）
+     *
+     * <p>故障处理：
+     * 通过 ExecutionFailureHandler 处理执行失败，支持：
+     * - 重试失败的 Task
+     * - 重启整组相关 Task（根据 FailoverStrategy）
+     * - 报告和记录失败信息
+     */
+
     protected final Logger log;
 
     private final ClassLoader userCodeLoader;

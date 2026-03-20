@@ -35,7 +35,17 @@ import java.util.function.Consumer;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** The checkpoint failure manager which centralized manage checkpoint failure processing logic. */
+// 这个文件已经全部加上中文注释
+
+/**
+ * 统一管理检查点失败处理逻辑的组件。
+ *
+ * <p>核心职责：
+ * 1. 跟踪连续检查点失败次数，判断是否超过容忍阈值
+ * 2. 区分 JobManager 级别和 TaskManager 级别的检查点失败
+ * 3. 根据检查点类型（普通检查点/Savepoint）决定处理策略
+ * 4. 超过容忍失败次数后触发作业失败
+ */
 public class CheckpointFailureManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointFailureManager.class);

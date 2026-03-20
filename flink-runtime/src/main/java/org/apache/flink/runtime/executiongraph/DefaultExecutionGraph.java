@@ -134,6 +134,24 @@ import static org.apache.flink.util.Preconditions.checkState;
 /** Default implementation of the {@link ExecutionGraph}. */
 public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionGraphAccessor {
 
+    /** 【学习型注释】
+     * DefaultExecutionGraph 是 ExecutionGraph 接口的默认实现，是 Flink 作业执行的核心数据结构。
+     *
+     * <p>核心职责：
+     * 1. 维护作业执行状态：跟踪所有 ExecutionJobVertex 和 ExecutionVertex 的状态
+     * 2. Checkpoint 协调：管理 CheckpointCoordinator，触发和跟踪检查点
+     * 3. 故障恢复：处理 Task 失败、重试和重启逻辑
+     * 4. 指标收集：收集和汇报执行指标到指标系统
+     * 5. 状态持久化：支持将执行图存档（ArchivedExecutionGraph）用于恢复和诊断
+     *
+     * <p>与 JobMaster 的关系：
+     * JobMaster 持有 DefaultExecutionGraph 的引用，通过它与调度器、SlotPool、TaskExecutor 协调工作。
+     * JobMaster 的主线程（jobMasterMainThreadExecutor）负责执行所有对 ExecutionGraph 的操作。
+     *
+     * <p>执行图 ID vs 作业 ID：
+     * executionGraphId 与 jobId 不同，一个作业可以创建多个执行图（如作业重提、故障恢复、扩缩容时）。
+     */
+
     /** The log object used for debugging. */
     static final Logger LOG = LoggerFactory.getLogger(ExecutionGraph.class);
 

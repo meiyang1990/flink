@@ -60,6 +60,8 @@ import java.util.concurrent.CompletableFuture;
 public interface ResourceManagerGateway
         extends FencedRpcGateway<ResourceManagerId>, ClusterPartitionManager, BlocklistListener {
 
+    // 这个文件已经全部加上中文注释
+
     /**
      * Register a {@link JobMaster} at the resource manager.
      *

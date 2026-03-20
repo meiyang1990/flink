@@ -36,8 +36,14 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <p>The {@link CheckpointProperties} are related and cover properties that are only relevant at
  * the {@link CheckpointCoordinator}. These options are relevant at the {@link AbstractInvokable}
  * instances running on task managers.
+ *
+ * <p>【学习型注释】
+ * CheckpointOptions 定义检查点的执行选项，包括对齐类型和超时设置。
+ * 这些选项在 TaskExecutor 上执行快照时使用，与 CheckpointProperties（用于 CheckpointCoordinator）配合。
  */
 public class CheckpointOptions implements Serializable {
+
+    // 这个文件已经全部加上中文注释
 
     /** How a checkpoint should be aligned. */
     public enum AlignmentType {

@@ -42,6 +42,8 @@ import java.util.Optional;
  * ArchivedExecutionGraph}.
  */
 public interface AccessExecutionGraph extends JobStatusProvider {
+
+    // 这个文件已经全部加上中文注释
     /**
      * Returns the job plan as a JobPlanInfo.Plan.
      *

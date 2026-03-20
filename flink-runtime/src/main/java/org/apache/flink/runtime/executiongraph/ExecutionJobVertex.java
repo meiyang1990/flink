@@ -83,6 +83,22 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
  * <p>The {@code ExecutionJobVertex} corresponds to a parallelized operation. It contains an {@link
  * ExecutionVertex} for each parallel instance of that operation.
+ *
+ * <p>【学习型注释】
+ * ExecutionJobVertex 是 ExecutionGraph 中的作业顶点，对应 JobGraph 中的一个 JobVertex。
+ * 它是 Flink 并行执行抽象的核心组件。
+ *
+ * <p>核心概念：
+ * - 一个 ExecutionJobVertex 持有多个 ExecutionVertex（并行实例）
+ * - 并行度（parallelism）决定了创建的 ExecutionVertex 数量
+ * - taskVertices 数组存储所有并行实例，每个实例可通过 subTaskIndex 索引
+ * - coLocationConstraints 存储 CoLocation 约束（用于迭代场景）
+ *
+ * <p>聚合状态管理：
+ * ExecutionJobVertex 聚合所有 ExecutionVertex 的状态，用于：
+ * 1. 计算作业整体进度
+ * 2. 管理 SlotSharingGroup（槽位共享组）
+ * 3. 管理 OperatorCoordinator（如 SourceCoordinator）
  */
 public class ExecutionJobVertex
         implements AccessExecutionJobVertex, Archiveable<ArchivedExecutionJobVertex> {

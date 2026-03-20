@@ -56,6 +56,19 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * The ExecutionVertex is a parallel subtask of the execution. It may be executed once, or several
  * times, each of which time it spawns an {@link Execution}.
+ *
+ * <p>【学习型注释】
+ * ExecutionVertex 是 ExecutionGraph 中的执行顶点，代表作业图（JobGraph）中某个顶点的一次并行实例。
+ * 它维护了该 subtask 的执行状态和历史记录。
+ *
+ * <p>核心概念：
+ * - 一个 ExecutionVertex 对应 JobVertex 的一个并行实例（subtask）
+ * - 每个 ExecutionVertex 可以有多个 Execution（执行尝试），通过 currentExecution 和 executionHistory 管理
+ * - resultPartitions 存储该顶点产出的所有中间结果分区
+ * - inputSplits 管理该顶点消费的输入分片（用于批处理场景）
+ *
+ * <p>与调度器的交互：
+ * 调度器通过 ExecutionVertexID 唯一标识每个顶点，用于批处理自适应调度。
  */
 public class ExecutionVertex
         implements AccessExecutionVertex, Archiveable<ArchivedExecutionVertex> {

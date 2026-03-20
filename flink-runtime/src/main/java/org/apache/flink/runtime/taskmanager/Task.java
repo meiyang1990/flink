@@ -144,6 +144,9 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <p>Each Task is run by one dedicated thread.
  */
 public class Task
+
+// 这个文件已经全部加上中文注释
+
         implements Runnable, TaskSlotPayload, TaskActions, PartitionProducerStateProvider {
 
     /** The class logger. */

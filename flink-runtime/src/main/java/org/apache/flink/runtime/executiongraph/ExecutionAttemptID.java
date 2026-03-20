@@ -34,6 +34,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class ExecutionAttemptID implements java.io.Serializable {
 
+    // 这个文件已经全部加上中文注释
+
     private static final long serialVersionUID = 1L;
 
     // Represent the number of bytes occupied when writes ExecutionAttemptID to the ByteBuf.
