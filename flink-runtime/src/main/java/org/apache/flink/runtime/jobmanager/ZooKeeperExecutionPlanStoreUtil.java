@@ -21,7 +21,16 @@ package org.apache.flink.runtime.jobmanager;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.util.ZooKeeperUtils;
 
-/** Singleton {@link ExecutionPlanStoreUtil} implementation for ZooKeeper. */
+/**
+ * Singleton {@link ExecutionPlanStoreUtil} implementation for ZooKeeper.
+ *
+ * <p>【学习型注释】
+ * ZooKeeperExecutionPlanStoreUtil 是 ExecutionPlanStoreUtil 的 ZooKeeper 实现（单例模式）。
+ * 它提供了 JobID 与 ZooKeeper 路径之间的转换：
+ * - jobIDToName: 将 JobID 转换为 ZK 路径（如 /flink/job-xxx）
+ * - nameToJobID: 从 ZK 路径解析出 JobID
+ * 用于在高可用模式下将执行计划存储到 ZooKeeper 的特定路径结构中。
+ */
 public enum ZooKeeperExecutionPlanStoreUtil implements ExecutionPlanStoreUtil {
     INSTANCE;
 

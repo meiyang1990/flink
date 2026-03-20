@@ -24,6 +24,11 @@ import org.apache.flink.streaming.api.graph.ExecutionPlan;
 
 /**
  * {@link ExecutionPlanWriter} implementation which does not allow to store {@link ExecutionPlan}.
+ *
+ * <p>【学习型注释】
+ * ThrowingExecutionPlanWriter 是一个特殊的 ExecutionPlanWriter 实现（单例模式），
+ * 它禁止任何写入操作，所有方法都会抛出 UnsupportedOperationException。
+ * 用于在特定场景下（如只读模式或测试环境）明确禁止执行计划的持久化操作。
  */
 public enum ThrowingExecutionPlanWriter implements ExecutionPlanWriter {
     INSTANCE;

@@ -47,6 +47,12 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>The root path is watched to detect concurrent modifications in corner situations where
  * multiple instances operate concurrently. The job manager acts as a {@link
  * ExecutionPlanStore.ExecutionPlanListener} to react to such situations.
+ *
+ * <p>【学习型注释】
+ * ZooKeeperExecutionPlanStoreWatcher 是基于 ZooKeeper 的执行计划存储监视器实现。
+ * 它使用 Curator 框架的 PathChildrenCache 监听 /flink/jobgraphs/ 路径下的子节点变化，
+ * 当其他 JobManager 实例添加或删除作业时，当前实例能够及时感知并作出响应。
+ * 这是实现高可用模式下多 JobManager 协调工作的关键组件。
  */
 public class ZooKeeperExecutionPlanStoreWatcher implements ExecutionPlanStoreWatcher {
 

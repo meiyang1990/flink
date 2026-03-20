@@ -39,6 +39,11 @@ import org.apache.flink.runtime.util.config.memory.jobmanager.JobManagerFlinkMem
  * We use Total Process Memory to refer to all the memory components, while Total Flink Memory
  * refering to all the components except JVM Metaspace and JVM Overhead.
  *
+ * <p>【学习型注释】
+ * JobManagerProcessSpec 描述了 JobManager 进程的内存规格配置。
+ * 它将总内存划分为多个组成部分，包括 JVM 堆内存、非堆内存、元空间和开销。
+ * 该类用于根据用户配置计算出合理的内存分配方案，确保 JobManager 稳定运行。
+ *
  * <p>The relationships of JobManager memory components are shown below.
  *
  * <pre>

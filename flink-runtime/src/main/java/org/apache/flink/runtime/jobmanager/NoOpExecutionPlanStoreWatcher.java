@@ -18,7 +18,14 @@
 
 package org.apache.flink.runtime.jobmanager;
 
-/** Singleton {@link ExecutionPlanStoreWatcher} empty implementation. */
+/**
+ * Singleton {@link ExecutionPlanStoreWatcher} empty implementation.
+ *
+ * <p>【学习型注释】
+ * NoOpExecutionPlanStoreWatcher 是 ExecutionPlanStoreWatcher 的空实现（单例模式）。
+ * 在单机模式（无高可用）下使用，因为不需要监视外部存储的变化，
+ * 所有方法都是空操作，减少不必要的资源开销。
+ */
 public enum NoOpExecutionPlanStoreWatcher implements ExecutionPlanStoreWatcher {
     INSTANCE;
 
