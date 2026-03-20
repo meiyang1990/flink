@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +21,8 @@ package org.apache.flink.runtime.asyncprocessing;
 
 import org.apache.flink.core.asyncprocessing.InternalAsyncFuture;
 
+// 【学习型注释】异步请求抽象基类，封装请求的上下文（RecordContext）、同步标志和结果 Future。
+// sync 标志区分同步请求和异步请求：同步请求需要立即阻塞等待结果，异步请求通过 Future 异步获取。
 @SuppressWarnings("rawtypes")
 public abstract class AsyncRequest<K> {
 

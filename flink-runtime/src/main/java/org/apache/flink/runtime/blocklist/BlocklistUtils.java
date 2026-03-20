@@ -16,15 +16,35 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import org.apache.flink.configuration.BatchExecutionOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.SlowTaskDetectorOptions;
 
-/** Utility class for blocklist. */
+/**
+ * Utility class for blocklist.
+ *
+ * <p>【学习型注释】
+ * BlocklistUtils 是屏蔽列表功能的工具类，提供工厂方法和配置检查。
+ *
+ * <p>核心功能：
+ * 1. 根据配置加载合适的 BlocklistHandler 工厂
+ * 2. 检查屏蔽功能是否启用
+ *
+ * <p>启用条件：
+ * 目前屏蔽列表功能仅用于推测执行（Speculative Execution）场景，
+ * 当启用推测执行时，慢任务检测器会将慢节点加入屏蔽列表。
+ */
 public class BlocklistUtils {
 
+    /**
+     * 根据 configuration 加载对应的 BlocklistHandler 工厂。
+     * 如果屏蔽功能启用，返回 DefaultBlocklistHandler.Factory；
+     * 否则返回 NoOpBlocklistHandler.Factory（空实现）。
+     */
     public static BlocklistHandler.Factory loadBlocklistHandlerFactory(
             Configuration configuration) {
         if (isBlocklistEnabled(configuration)) {
@@ -35,6 +55,10 @@ public class BlocklistUtils {
         }
     }
 
+    /**
+     * 检查屏蔽功能是否启用。
+     * 目前仅在推测执行启用时才启用屏蔽功能。
+     */
     public static boolean isBlocklistEnabled(Configuration configuration) {
         // Currently, only enable blocklist for speculative execution
         return configuration.get(BatchExecutionOptions.SPECULATIVE_ENABLED);

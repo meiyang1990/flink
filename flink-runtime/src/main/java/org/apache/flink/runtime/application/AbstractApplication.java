@@ -235,12 +235,14 @@ public abstract class AbstractApplication implements Serializable {
                 targetState);
         this.statusTimestamps[targetState.ordinal()] = System.currentTimeMillis();
         this.applicationState = targetState;
+        // 【学习型注释】状态变更后通知所有监听器，触发归档等后续操作
         getStatusListeners()
                 .forEach(
                         listener ->
                                 listener.notifyApplicationStatusChange(applicationId, targetState));
     }
 
+    // 【学习型注释】根据 ALLOWED_TRANSITIONS 静态映射校验目标状态是否合法
     private void validateTransition(ApplicationState targetState) {
         Set<ApplicationState> allowedTransitions = ALLOWED_TRANSITIONS.get(applicationState);
         if (allowedTransitions == null || !allowedTransitions.contains(targetState)) {

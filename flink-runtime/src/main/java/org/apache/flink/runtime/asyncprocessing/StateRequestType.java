@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -34,6 +35,10 @@ import java.util.Map;
  *
  * <p>TODO: Serialization and Deserialization.
  */
+// 【学习型注释】状态请求类型枚举，定义了所有异步状态 API 对应的请求类型。
+// 每种 State 接口的 async 方法（如 ValueState.asyncValue()）都有对应的枚举值。
+// SYNC_POINT 是特殊的同步点请求，不涉及实际状态操作，仅用于 key 占用检查和阻塞等待。
+// CUSTOMIZED 为状态后端自定义扩展预留的类型。
 public enum StateRequestType {
 
     /**

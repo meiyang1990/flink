@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,6 +46,9 @@ import java.util.function.Supplier;
  *
  * @param <K> the type of the key
  */
+// 【学习型注释】异步请求缓冲池，用于在单线程内聚合状态请求，实现批量处理以提升吞吐。
+// 维护 activeQueue（当前可处理请求）和 blockingQueue（按 key 阻塞的请求，保证相同 Key 的状态访问有序性）。
+// 支持基于超时或请求数量的定时触发批量执行，所有操作需在 Task Thread 中进行。
 @NotThreadSafe
 public class AsyncRequestBuffer<K> implements Closeable {
 

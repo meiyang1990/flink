@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +20,7 @@
 package org.apache.flink.runtime.asyncprocessing;
 
 /** An exception for wrapping exceptions that are thrown by {@link AsyncExecutionController}. */
+// 【学习型注释】异步状态处理框架的异常包装类，封装 AsyncExecutionController 中抛出的原始异常。
 public class AsyncException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 

@@ -15,11 +15,27 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 
-/** This checker helps to query whether a given task manager is blocked. */
+/**
+ * This checker helps to query whether a given task manager is blocked.
+ *
+ * <p>【学习型注释】
+ * BlockedTaskManagerChecker 用于检查某个 TaskManager 是否在屏蔽节点上运行。
+ *
+ * <p>核心方法：
+ * isBlockedTaskManager(ResourceID): 检查 TaskManager 是否被屏蔽
+ *
+ * <p>使用场景：
+ * SlotManager 在分配 Slot 时会调用此接口，确保不会将 Task 分配到屏蔽节点上的 TaskManager。
+ *
+ * <p>实现类：
+ * BlocklistHandler：维护节点ID到屏蔽状态的映射
+ */
 public interface BlockedTaskManagerChecker {
 
     /**

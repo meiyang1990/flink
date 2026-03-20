@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -30,6 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @param <K> the type of key
  */
+// 【学习型注释】Key 计数单元，确保同一个 key 的状态请求按顺序处理。
+// 使用 ConcurrentHashMap 的 putIfAbsent 实现 key 级别的锁：同一个 key 同时只能被一条记录占用，
+// 后续记录必须等待前一条释放 key 后才能继续处理，从而保证 key 内的状态操作有序性。
 public class KeyAccountingUnit<K> {
     /** The in-flight records that are being processed, their keys are different from each other. */
     private final Map<K, Object> noConflictInFlightRecords;

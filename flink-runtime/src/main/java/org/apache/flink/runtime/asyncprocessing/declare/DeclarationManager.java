@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,6 +29,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /** The manager holds all the declaration information and manage the building procedure. */
+// 【学习型注释】声明管理器，负责维护异步状态处理中所有回调函数和状态变量的定义信息。
+// 它是异步算子构建过程的核心组件，为每个变量分配顺序序号（ordinal），并在运行时提供上下文绑定支持。
 public class DeclarationManager {
 
     private final Map<String, NamedCallback> knownCallbacks;

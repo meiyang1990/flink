@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import org.apache.flink.runtime.messages.Acknowledge;
@@ -23,7 +25,19 @@ import org.apache.flink.runtime.messages.Acknowledge;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
-/** A listener that want to be notified when blocklist changes. */
+/**
+ * A listener that want to be notified when blocklist changes.
+ *
+ * <p>【学习型注释】
+ * BlocklistListener 是屏蔽列表变更监听器接口，用于接收屏蔽节点变更通知。
+ *
+ * <p>使用场景：
+ * JobMaster 注册为 BlocklistListener，当 ResourceManager 检测到故障节点时，
+ * 会通知所有 JobMaster，使其能够重新调度受影响的 Task。
+ *
+ * <p>设计模式：
+ * 观察者模式，解耦屏蔽列表管理和任务调度逻辑。
+ */
 public interface BlocklistListener {
 
     /**

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,6 +22,8 @@ package org.apache.flink.runtime.asyncprocessing.declare;
 import org.apache.flink.annotation.Experimental;
 
 /** A named callback that can be identified and checkpoint. */
+// 【学习型注释】回调函数的抽象基类，引入名称标识。
+// 在 FLIP-425 的设计中，回调函数的持久化恢复依赖于其命名唯一性，以确保在不同检查点间匹配到正确的处理逻辑。
 @Experimental
 public abstract class NamedCallback {
 

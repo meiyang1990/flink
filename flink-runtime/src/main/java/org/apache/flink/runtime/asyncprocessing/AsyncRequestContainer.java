@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,6 +27,9 @@ package org.apache.flink.runtime.asyncprocessing;
  *
  * <p>Notice that the {@code AsyncRequestContainer} may not be thread-safe.
  */
+// 【学习型注释】异步请求容器接口，作为运行时层和状态层之间的数据传输中间载体。
+// 运行时层将状态请求放入容器，状态层从容器中取出并批量处理。
+// 注意：此容器不是线程安全的，需在单线程中使用。
 public interface AsyncRequestContainer<REQUEST extends AsyncRequest<?>> {
 
     /** Preserve a stateRequest into the {@code AsyncRequestContainer}. */

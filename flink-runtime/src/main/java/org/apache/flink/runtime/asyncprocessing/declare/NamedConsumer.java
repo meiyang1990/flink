@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,6 +25,8 @@ import org.apache.flink.util.function.ThrowingConsumer;
 import java.util.function.Consumer;
 
 /** A named version of {@link Consumer}. */
+// 【学习型注释】命名的 Consumer 实现，封装了可抛出异常的 ThrowingConsumer。
+// 适配器模式应用，确保算子异步处理中的消费逻辑可以进行唯一命名与持久化序列化。
 @Experimental
 public class NamedConsumer<T> extends NamedCallback implements ThrowingConsumer<T, Exception> {
 

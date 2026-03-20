@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -31,6 +32,10 @@ import java.util.Map;
  * This class encapsulates a map of accumulators for a single task. It is used for the transfer from
  * TaskManagers to the JobManager and from the JobManager to the Client.
  */
+// 【学习型注释】单个任务的累加器快照，实现了 Serializable 以支持跨进程传输。
+// 数据流向：TaskManager 创建快照 → 序列化后发送给 JobManager → JobManager 聚合后返回 Client。
+// 累加器值在构造时就被序列化为 SerializedValue，确保可以安全地在不同 JVM 之间传输，
+// 反序列化时需要传入用户的 ClassLoader（因为累加器可能包含用户自定义类）。
 public class AccumulatorSnapshot implements Serializable {
 
     private static final long serialVersionUID = 42L;

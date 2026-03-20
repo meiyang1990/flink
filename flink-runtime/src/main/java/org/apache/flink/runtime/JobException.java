@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,6 +22,7 @@ package org.apache.flink.runtime;
 import org.apache.flink.util.FlinkException;
 
 /** Indicates that a job has failed. */
+// 【学习型注释】作业级别的异常，用于表示 Flink 作业执行过程中发生的错误
 public class JobException extends FlinkException {
 
     private static final long serialVersionUID = 1275864691743020176L;

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -27,6 +28,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /** The handler which can process {@link StateRequest}. */
+// 【学习型注释】状态请求处理器接口，定义了异步和同步两种处理模式。
+// handleRequest 返回 Future 供异步回调链使用，handleRequestSync 阻塞等待结果。
+// setCurrentNamespaceForState 用于在处理请求前设置正确的命名空间上下文。
 @Internal
 public interface StateRequestHandler {
 

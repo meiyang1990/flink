@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -31,6 +32,9 @@ import javax.annotation.concurrent.ThreadSafe;
  * reference count reaches zero. This class is designed to be high-performance, lock-free and
  * thread-safe.
  */
+// 【学习型注释】基于 Unsafe CAS 实现的无锁引用计数基类。
+// 使用 sun.misc.Unsafe 直接操作内存偏移量进行原子计数，避免 synchronized 开销。
+// retain() 无条件递增，tryRetain() 在计数为 0 时失败，release() 递减到 0 时触发资源释放回调。
 @Internal
 @ThreadSafe
 public abstract class ReferenceCounted<ReleaseHelper> {

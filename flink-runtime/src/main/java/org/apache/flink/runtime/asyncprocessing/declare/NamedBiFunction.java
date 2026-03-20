@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,6 +25,8 @@ import org.apache.flink.util.function.BiFunctionWithException;
 import java.util.function.BiFunction;
 
 /** A named version of {@link BiFunction}. */
+// 【学习型注释】命名的 BiFunction，支持异常抛出，用于异步处理框架中具名回调的定义。
+// 通过指定唯一名称，便于在检查点中识别和恢复处理逻辑。
 @Experimental
 public class NamedBiFunction<T, U, V> extends NamedCallback
         implements BiFunctionWithException<T, U, V, Exception> {

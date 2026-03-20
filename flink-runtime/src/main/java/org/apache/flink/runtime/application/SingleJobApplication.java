@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,6 +44,12 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /** An implementation of {@link AbstractApplication} designed for executing a single job. */
+// 【学习型注释】单作业应用实现，一个 Application 只包含一个 Job（这是最常见的部署模式）。
+// 同时实现 JobStatusListener，监听作业状态变化并将其映射为应用状态：
+// - Job FINISHED → App FINISHED
+// - Job CANCELED → App CANCELED
+// - Job FAILED → App FAILING → FAILED
+// isRecovered 标志用于区分首次提交和故障恢复场景，恢复时跳过提交由 Dispatcher 自行恢复。
 public class SingleJobApplication extends AbstractApplication implements JobStatusListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(SingleJobApplication.class);

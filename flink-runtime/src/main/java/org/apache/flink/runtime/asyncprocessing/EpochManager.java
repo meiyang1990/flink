@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -32,6 +33,12 @@ import java.util.LinkedList;
  * be executed when all records in this epoch have finished.
  *
  * <p>For more details please refer to FLIP-425.
+ *
+ * <p>【学习型注释】
+ * EpochManager 是异步处理模型中的纪元管理器，负责将输入的记录流划分为一系列“纪元”（Epoch）。
+ * 纪元由非记录输入（如 Watermark、Checkpoint 触发等）进行分割。
+ * 设计意图：保证顺序一致性与并行处理的平衡。纪元内的记录可以并发处理，但纪元的非记录动作（如定时器触发）
+ * 必须在该纪元内所有记录处理完成后才能执行，确保状态一致性。
  */
 public class EpochManager {
     private static final Logger LOG = LoggerFactory.getLogger(EpochManager.class);

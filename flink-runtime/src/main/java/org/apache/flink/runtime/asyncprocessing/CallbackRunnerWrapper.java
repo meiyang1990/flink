@@ -49,10 +49,12 @@ public class CallbackRunnerWrapper {
      * @param task the callback.
      */
     public void submit(ThrowingRunnable<? extends Exception> task) {
+        // 【学习型注释】先提交到 Mailbox，再递增计数。使用 CAS 语义确保从 0→1 时触发通知。
+        // 先 submit 再 increment 的顺序很重要：如果先 increment 再 submit，
+        // 可能在 submit 之前 isHasMail 就返回 true，但回调还未实际入队。
         mailboxExecutor.execute(
                 () -> {
-                    // -1 before the task run, since the task may query #isHasMail, and we don't
-                    // want to return to true before the task is finished if there is no else mail.
+                    // 【学习型注释】先 decrement 再执行任务，防止任务中查询 isHasMail 时误判
                     currentCallbacks.decrementAndGet();
                     task.run();
                 },

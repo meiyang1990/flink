@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -30,6 +31,9 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 /** Container class that transports the result of an accumulator as set of strings. */
+// 【学习型注释】累加器结果的字符串化表示，用于 REST API 和 Client 端展示。
+// 将累加器的名称、类型和值统一转为 String，以便通过 JSON 等文本协议传输给用户。
+// 支持处理累加器计算失败的情况：失败时 value 字段包含异常堆栈信息。
 public class StringifiedAccumulatorResult implements java.io.Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(StringifiedAccumulatorResult.class);
 
@@ -65,6 +69,8 @@ public class StringifiedAccumulatorResult implements java.io.Serializable {
      * Flatten a map of accumulator names to Accumulator instances into an array of
      * StringifiedAccumulatorResult values.
      */
+    // 【学习型注释】将累加器 Map 批量转换为字符串数组，供 REST API 或 Client 消费。
+    // 使用 OptionalFailure 包装以区分正常值和异常情况
     public static StringifiedAccumulatorResult[] stringifyAccumulatorResults(
             Map<String, OptionalFailure<Accumulator<?, ?>>> accs) {
         if (accs == null || accs.isEmpty()) {
@@ -80,11 +86,13 @@ public class StringifiedAccumulatorResult implements java.io.Serializable {
         }
     }
 
+    // 【学习型注释】处理单个累加器的三种状态：null、失败、正常取值
     private static StringifiedAccumulatorResult stringifyAccumulatorResult(
             String name, @Nullable OptionalFailure<Accumulator<?, ?>> accumulator) {
         if (accumulator == null) {
             return new StringifiedAccumulatorResult(name, "null", "null");
         } else if (accumulator.isFailure()) {
+            // 【学习型注释】累加器计算失败时，将异常信息作为 value 展示
             return new StringifiedAccumulatorResult(
                     name, "null", ExceptionUtils.stringifyException(accumulator.getFailureCause()));
         } else {

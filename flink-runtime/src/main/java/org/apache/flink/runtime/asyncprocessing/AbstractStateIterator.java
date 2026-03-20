@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,6 +43,14 @@ import java.util.function.Consumer;
  * #hasNextLoading()}) by creating **ANOTHER** iterating request. Thus, later it returns another
  * iterator instance, and we continue to apply the user iteration on that instance. The whole
  * elements will be iterated by recursive call of {@code #onNext()}.
+ *
+ * <p>【学习型注释】
+ * AbstractStateIterator 是异步状态迭代器的基类，用于支持状态数据的异步分批加载。
+ * 核心设计思想：
+ * 1. 缓存加载：每个迭代器持有当前已加载的一批数据（cache）。
+ * 2. 递归懒加载：通过 `onNext` 方法进行递归调用。如果当前批次处理完且仍有数据未加载 (`hasNextLoading`)，
+ *    则发起一次新的异步请求请求后续数据，并链式返回一个新的迭代器实例。
+ * 3. 任务线程执行：用户对缓存数据的迭代逻辑在任务线程直接执行，保证了用户接口的同步调用感受。
  */
 @SuppressWarnings("rawtypes")
 public abstract class AbstractStateIterator<T> implements InternalStateIterator<T> {
@@ -113,6 +122,7 @@ public abstract class AbstractStateIterator<T> implements InternalStateIterator<
         Collection<StateFuture<? extends U>> resultFutures = new ArrayList<>();
 
         try {
+            // 对当前缓存的数据应用用户逻辑
             for (T item : cache) {
                 StateFuture<? extends U> resultFuture = iterating.apply(item);
                 if (resultFuture != null) {
@@ -120,9 +130,10 @@ public abstract class AbstractStateIterator<T> implements InternalStateIterator<
                 }
             }
         } catch (Exception e) {
-            // Since this is on task thread, we can directly throw the runtime exception.
+            // 在任务线程直接抛出运行时异常
             throw new FlinkRuntimeException("Failed to iterate over state.", e);
         }
+        // 如果还有剩余数据需要加载，则异步请求下一批数据并递归处理
         if (hasNextLoading()) {
             return StateFutureUtils.combineAll(resultFutures)
                     .thenCombine(
@@ -147,13 +158,14 @@ public abstract class AbstractStateIterator<T> implements InternalStateIterator<
             return StateFutureUtils.completedVoidFuture();
         }
         try {
+            // 遍历缓存数据进行处理
             for (T item : cache) {
                 iterating.accept(item);
             }
         } catch (Exception e) {
-            // Since this is on task thread, we can directly throw the runtime exception.
             throw new FlinkRuntimeException("Failed to iterate over state.", e);
         }
+        // 递归链式请求后续数据
         if (hasNextLoading()) {
             return asyncNextLoad().thenCompose(itr -> itr.onNext(iterating));
         } else {

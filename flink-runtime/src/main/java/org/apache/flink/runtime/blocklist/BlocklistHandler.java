@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
@@ -29,6 +31,23 @@ import java.util.function.Function;
 
 /**
  * This class is responsible for managing all {@link BlockedNode}s and performing them on resources.
+ *
+ * <p>【学习型注释】
+ * BlocklistHandler 是屏蔽列表管理器的核心接口，负责故障节点的记录、查询和通知。
+ *
+ * <p>核心职责：
+ * 1. 维护屏蔽节点列表：添加新屏蔽节点，自动合并重复记录
+ * 2. 查询屏蔽状态：判断 TaskManager 是否在屏蔽节点上运行
+ * 3. 监听器管理：注册/注销屏蔽列表变更监听器
+ * 4. 资源协调：通过 BlocklistContext 执行资源屏蔽/解除操作
+ *
+ * <p>实现类：
+ * - DefaultBlocklistHandler：默认实现，集成了 BlocklistTracker 和超时清理机制
+ * - NoOpBlocklistHandler：空实现，用于禁用屏蔽功能
+ *
+ * <p>使用场景：
+ * ResourceManager 持有 BlocklistHandler 实例，当 TaskManager 频繁失败时，
+ * 会将其所在节点加入屏蔽列表，避免新的 Task 被调度到该节点。
  */
 public interface BlocklistHandler {
 

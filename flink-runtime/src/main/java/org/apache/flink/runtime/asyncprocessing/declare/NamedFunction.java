@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,6 +25,8 @@ import org.apache.flink.util.function.FunctionWithException;
 import java.util.function.Function;
 
 /** A named version of {@link Function}. */
+// 【学习型注释】命名的 Function 实现，支持异步处理中的转换逻辑具名化。
+// 在状态处理回调链路构建中，通过名称标识回调函数，方便状态后端进行管理与序列化存储。
 @Experimental
 public class NamedFunction<T, R> extends NamedCallback
         implements FunctionWithException<T, R, Exception> {

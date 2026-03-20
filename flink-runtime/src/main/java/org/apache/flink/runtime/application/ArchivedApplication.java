@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,6 +30,8 @@ import java.util.Collection;
 import java.util.Map;
 
 /** Read-only information about an {@link AbstractApplication}. */
+// 【学习型注释】已归档的应用只读信息快照，在应用完成后由 Dispatcher 创建并持久化。
+// 包含应用基本信息、状态时间戳、关联的作业执行图信息和异常历史，供 History Server 和 REST API 查询。
 public class ArchivedApplication implements Serializable {
 
     private static final long serialVersionUID = 7231383912742578429L;

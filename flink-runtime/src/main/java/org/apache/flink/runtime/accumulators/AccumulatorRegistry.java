@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,6 +30,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Main accumulator registry which encapsulates user-defined accumulators. */
+// 【学习型注释】累加器注册表，运行在 TaskManager 端，管理当前任务执行过程中所有用户自定义的累加器。
+// 当任务执行完毕时，通过 getSnapshot() 创建快照并发送给 JobManager 进行聚合汇总。
 public class AccumulatorRegistry {
 
     protected static final Logger LOG = LoggerFactory.getLogger(AccumulatorRegistry.class);

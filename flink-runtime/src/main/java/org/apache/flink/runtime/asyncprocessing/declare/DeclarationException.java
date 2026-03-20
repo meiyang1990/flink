@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +20,7 @@
 package org.apache.flink.runtime.asyncprocessing.declare;
 
 /** Exception thrown when something wrong with declaration happens. */
+// 【学习型注释】异步声明异常，当在定义异步处理逻辑或回调时出现定义冲突（如命名重复、链路分叉）时抛出。
 public class DeclarationException extends RuntimeException {
 
     public DeclarationException(String message) {

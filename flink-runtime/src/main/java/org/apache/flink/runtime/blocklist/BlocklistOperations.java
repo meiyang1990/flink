@@ -16,11 +16,25 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import java.util.Collection;
 
-/** Operations to perform on the blocklist. */
+/**
+ * Operations to perform on the blocklist.
+ *
+ * <p>【学习型注释】
+ * BlocklistOperations 定义了对屏蔽列表的操作接口，目前只包含添加新屏蔽节点。
+ *
+ * <p>设计意图：
+ * 这是一个最小化的操作接口，允许外部组件（如 TaskManager）
+ * 向 ResourceManager 报告故障节点，而无需暴露完整的 BlocklistHandler 功能。
+ *
+ * <p>继承关系：
+ * BlocklistHandler 继承此接口，提供更完整的屏蔽列表管理能力。
+ */
 public interface BlocklistOperations {
 
     /**

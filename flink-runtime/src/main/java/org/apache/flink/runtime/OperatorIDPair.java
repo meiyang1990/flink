@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,6 +27,9 @@ import java.io.Serializable;
 import java.util.Optional;
 
 /** Formed of a mandatory operator ID and optionally a user defined operator ID. */
+// 【学习型注释】操作符 ID 对，用于同时持有系统自动生成的 OperatorID 和用户自定义的 OperatorID。
+// 在 Flink 的状态恢复和算子匹配中，用户自定义 ID 优先于生成 ID 使用，
+// 这是为了支持作业拓扑变更后仍能正确恢复状态而设计的双重标识机制。
 public class OperatorIDPair implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -35,6 +39,7 @@ public class OperatorIDPair implements Serializable {
     @Nullable private final String userDefinedOperatorName;
     @Nullable private final String userDefinedOperatorUid;
 
+    // 【学习型注释】私有构造函数，禁止外部直接实例化，必须通过工厂方法创建
     private OperatorIDPair(
             OperatorID generatedOperatorID,
             @Nullable OperatorID userDefinedOperatorID,
@@ -42,6 +47,7 @@ public class OperatorIDPair implements Serializable {
             @Nullable String userDefinedOperatorUid) {
         this.generatedOperatorID = generatedOperatorID;
         this.userDefinedOperatorID = userDefinedOperatorID;
+        // 【学习型注释】空字符串和 null 语义不同：null 表示未设置，空字符串非法
         if (userDefinedOperatorName != null && userDefinedOperatorName.isEmpty()) {
             throw new IllegalArgumentException("Empty string operator name is not allowed");
         }

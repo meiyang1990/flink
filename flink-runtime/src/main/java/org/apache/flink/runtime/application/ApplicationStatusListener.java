@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,6 +23,8 @@ import org.apache.flink.api.common.ApplicationID;
 import org.apache.flink.api.common.ApplicationState;
 
 /** Interface for listeners that monitor the status of an application. */
+// 【学习型注释】应用状态变更监听器接口。Dispatcher 注册为监听器后，
+// 在应用进入终态时触发归档（archiving）等清理操作。
 public interface ApplicationStatusListener {
 
     /**

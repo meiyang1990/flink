@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -25,6 +26,8 @@ import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /** A variable declared in async state processing. The value could be persisted in checkpoint. */
+// 【学习型注释】可持久化声明变量，用于在异步处理中定义需要保存到检查点的状态变量。
+// 它通过 TypeSerializer 进行序列化，确保算子状态的故障恢复能力。
 public class DeclaredVariable<T> extends ContextVariable<T> {
 
     final TypeSerializer<T> typeSerializer;

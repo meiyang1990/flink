@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -33,6 +34,9 @@ import javax.annotation.Nullable;
  * The {@link StateExecutionController} is responsible for handling {@link StateRequest}s. It
  * extends {@link AsyncExecutionController} and implements {@link StateRequestHandler}.
  */
+// 【学习型注释】状态执行控制器，继承 AsyncExecutionController 并实现 StateRequestHandler。
+// 是异步状态处理框架面向上层算子的核心入口：接收状态请求 → 创建 Future → 提交到执行器。
+// handleRequest 方法支持异步模式（返回 Future）和同步模式（阻塞等待结果）。
 public class StateExecutionController<K>
         extends AsyncExecutionController<K, StateRequest<?, ?, ?, ?>>
         implements StateRequestHandler {

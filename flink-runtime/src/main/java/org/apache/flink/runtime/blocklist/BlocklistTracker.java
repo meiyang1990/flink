@@ -16,12 +16,31 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import java.util.Collection;
 import java.util.Set;
 
-/** A tracker for blocklist. */
+/**
+ * A tracker for blocklist.
+ *
+ * <p>【学习型注释】
+ * BlocklistTracker 是屏蔽列表追踪器接口，负责维护和管理屏蔽节点的状态。
+ *
+ * <p>核心职责：
+ * 1. 添加屏蔽节点：处理新增节点，自动合并已存在的节点记录
+ * 2. 查询屏蔽状态：检查节点是否在屏蔽列表中
+ * 3. 清理过期节点：移除超时的屏蔽记录
+ *
+ * <p>实现类：
+ * - DefaultBlocklistTracker：默认实现，使用 Map 存储屏蔽节点
+ *
+ * <p>设计意图：
+ * 将屏蔽列表的存储和查询逻辑从 BlocklistHandler 中剥离，
+ * BlocklistHandler 专注于协调和通知，BlocklistTracker 专注于状态管理。
+ */
 public interface BlocklistTracker {
 
     /**

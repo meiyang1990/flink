@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -25,6 +26,9 @@ import org.apache.flink.core.asyncprocessing.InternalAsyncFuture;
  * An internal factory for {@link InternalAsyncFuture} that build future with necessary context
  * switch and wired with mailbox executor.
  */
+// 【学习型注释】异步 Future 工厂，创建的 Future 绑定了 RecordContext 上下文切换逻辑。
+// 当 Future 回调执行时，会先通过 AsyncExecutionController.setCurrentContext 设置正确的记录上下文，
+// 再执行用户的回调逻辑，确保在异步回调链中上下文不丢失。
 public class AsyncFutureFactory<K> {
 
     private final AsyncExecutionController<K, ?> asyncExecutionController;

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -35,6 +36,9 @@ import java.io.Serializable;
  * @param <N> Type of namespace.
  * @param <OUT> Type of value that request will return.
  */
+// 【学习型注释】状态请求的具体实现，封装了目标 State、请求类型、输入载荷、命名空间和结果 Future。
+// 构造时从 RecordContext 中提取当前 namespace，确保请求携带完整的上下文信息。
+// 实现 Serializable 以支持在网络中传输（如远程状态访问场景）。
 public class StateRequest<K, N, IN, OUT> extends AsyncRequest<K> implements Serializable {
 
     /** The underlying state to be accessed. */

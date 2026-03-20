@@ -15,11 +15,25 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import java.util.Set;
 
-/** This class helps to retrieve the blocked nodes. */
+/**
+ * This class helps to retrieve the blocked nodes.
+ *
+ * <p>【学习型注释】
+ * BlockedNodeRetriever 是屏蔽节点查询接口，用于获取当前所有被屏蔽的节点ID集合。
+ *
+ * <p>实现类：
+ * - BlocklistHandler：ResourceManager 使用，管理全局屏蔽列表
+ * - NoOpBlocklistHandler：空实现，用于禁用屏蔽功能
+ *
+ * <p>使用场景：
+ * 调度器在分配 Slot 时会检查节点是否在屏蔽列表中，避免将Task调度到故障节点。
+ */
 public interface BlockedNodeRetriever {
 
     /**

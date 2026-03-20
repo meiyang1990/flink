@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,5 +27,7 @@ import org.apache.flink.annotation.Internal;
  * <p>Notice that the owner who create the {@code AsyncExecutor} is responsible for shutting down it
  * when it is no longer in use.
  */
+// 【学习型注释】状态专用执行器接口，将泛型参数具体化为 StateRequest。
+// 这是 AsyncExecutor 在状态处理领域的特化版本，专门处理 State 读写请求。
 @Internal
 public interface StateExecutor extends AsyncExecutor<StateRequest<?, ?, ?, ?>> {}

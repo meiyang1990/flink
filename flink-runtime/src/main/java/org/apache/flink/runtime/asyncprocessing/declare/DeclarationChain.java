@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -33,6 +34,9 @@ import java.util.LinkedList;
  *
  * @param <IN> The type of the input elements.
  */
+// 【学习型注释】异步操作链，用于将多个异步状态操作组合成一个执行管道。
+// 实现了 ThrowingConsumer 接口，使得整条链可以在数据流处理中作为消费者被执行。
+// 链式处理通过 thenCompose 和 thenAccept 动态构建 Transformation 序列，最后顺序执行。
 @Experimental
 public class DeclarationChain<IN> implements ThrowingConsumer<IN, Exception> {
 

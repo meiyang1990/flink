@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,6 +29,8 @@ import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /** A context to declare parts of process in user-defined function/operator. */
+// 【学习型注释】声明上下文，为算子提供声明式 API（DSL），用于定义异步回调函数和状态变量。
+// 它封装了与 DeclarationManager 的交互，屏蔽了复杂的命名分配逻辑，支持函数链（Chain）式处理。
 public class DeclarationContext {
 
     private static final String AUTO_NAME_PREFIX = "F";

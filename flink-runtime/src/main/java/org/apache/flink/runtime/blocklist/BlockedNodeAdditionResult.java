@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import java.util.Collection;
@@ -23,7 +25,20 @@ import java.util.Collections;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** The result of adding new blocked nodes. */
+/**
+ * The result of adding new blocked nodes.
+ *
+ * <p>【学习型注释】
+ * BlockedNodeAdditionResult 封装了添加新屏蔽节点的结果。
+ *
+ * <p>包含两部分：
+ * - newlyAddedNodes: 新增的屏蔽节点（之前不存在）
+ * - mergedNodes: 合并的屏蔽节点（已存在，更新了屏蔽时长）
+ *
+ * <p>设计意图：
+ * 返回详细的结果，便于调用方了解屏蔽列表的变化情况，
+ * 例如记录日志、通知监听器等。
+ */
 class BlockedNodeAdditionResult {
 
     private final Collection<BlockedNode> newlyAddedNodes;

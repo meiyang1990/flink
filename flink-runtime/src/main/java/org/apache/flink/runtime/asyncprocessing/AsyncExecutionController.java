@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,6 +52,14 @@ import java.util.function.Supplier;
  * <li>Tracking the in-flight data(records) and blocking the input if too much data in flight
  *     (back-pressure). It invokes {@link MailboxExecutor#yield()} to pause current operations,
  *     allowing for the execution of callbacks (mails in Mailbox).
+ *
+ * <p>【学习型注释】
+ * AsyncExecutionController (AEC) 是异步状态处理框架的控制中心。
+ * 核心职责：
+ * 1. 顺序保证：对于相同 Key 的请求，AEC 确保严格的执行顺序，通过 KeyAccountingUnit 阻塞后续冲突请求。
+ * 2. 流量控制（背压）：跟踪进行中的请求数 (in-flight records)，当数量超过上限时利用 Mailbox 机制阻塞输入，实现背压反馈。
+ * 3. 异步调度与批处理：将零散的异步请求缓冲并根据策略（批大小或超时）触发批量异步 I/O 执行。
+ * 4. 上下文管理：维护当前的异步执行上下文 (RecordContext)，确保状态操作能在正确的逻辑空间内运行。
  *
  * @param <K> the type of the key
  */

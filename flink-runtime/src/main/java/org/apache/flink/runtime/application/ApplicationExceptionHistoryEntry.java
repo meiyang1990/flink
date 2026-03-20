@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,6 +30,8 @@ import java.util.Optional;
  * {@code ExceptionHistoryEntry} collects information about a single failure that triggered the
  * application's failure.
  */
+// 【学习型注释】应用异常历史条目，继承 ErrorInfo 并额外记录触发失败的 JobID。
+// 当应用因某个作业失败而进入 FAILING 状态时，会创建此条目以便事后诊断根因。
 public class ApplicationExceptionHistoryEntry extends ErrorInfo {
 
     private static final long serialVersionUID = -3855285510064263702L;

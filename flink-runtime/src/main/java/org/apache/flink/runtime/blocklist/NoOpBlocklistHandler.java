@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+// 这个文件已经全部加上中文注释
+
 package org.apache.flink.runtime.blocklist;
 
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
@@ -28,7 +30,19 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.function.Function;
 
-/** No-op implementation of {@link BlocklistHandler}. */
+/**
+ * No-op implementation of {@link BlocklistHandler}.
+ *
+ * <p>【学习型注释】
+ * NoOpBlocklistHandler 是 BlocklistHandler 的空实现，所有方法都是空操作。
+ *
+ * <p>使用场景：
+ * 当屏蔽功能未启用时（如未开启推测执行），ResourceManager 会使用此实现，
+ * 避免屏蔽列表相关逻辑对系统产生影响。
+ *
+ * <p>设计模式：
+ * 空对象模式（Null Object Pattern），避免在调用方进行 null 检查。
+ */
 public class NoOpBlocklistHandler implements BlocklistHandler {
     @Override
     public void addNewBlockedNodes(Collection<BlockedNode> newNodes) {}

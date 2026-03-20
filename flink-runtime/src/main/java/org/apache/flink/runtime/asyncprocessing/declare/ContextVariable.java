@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,6 +24,8 @@ import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /** A value that will have different values across different contexts. */
+// 【学习型注释】基于上下文的变量，其值在不同的 RecordContext 中可以独立。
+// 通过 DeclarationManager 进行读写操作，实现了异步处理中变量的上下文隔离。
 public class ContextVariable<T> {
 
     final DeclarationManager manager;
