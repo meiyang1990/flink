@@ -48,6 +48,28 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Base implementation of KeyedStateBackend. The state can be checkpointed to streams using {@link
  * #snapshot(long, long, CheckpointStreamFactory, CheckpointOptions)}.
  *
+ * <p>【学习型注释】
+ * AbstractKeyedStateBackend 是 Keyed State 后端的抽象基类。
+ * Keyed State 是按 Key 分区的状态，只有 KeyedStream 上的算子可以使用。
+ *
+ * <p>核心概念 - KeyGroup：
+ * KeyGroup 是状态分区的最小单位，用于支持扩缩容时的状态重分配。
+ * - numberOfKeyGroups：KeyGroup 总数（等于 maxParallelism）
+ * - keyGroupRange：当前 subtask 负责的 KeyGroup 范围
+ *
+ * <p>状态访问流程：
+ * 1. 设置当前 Key（setCurrentKey）
+ * 2. 通过 StateDescriptor 获取状态句柄（getPartitionedState）
+ * 3. 状态句柄内部根据当前 Key 访问具体的 KV 数据
+ *
+ * <p>检查点快照：
+ * snapshot() 方法创建异步快照，将 KeyGroup 范围内的所有状态序列化。
+ * 支持增量检查点（仅 RocksDB）和压缩（keyGroupCompressionDecorator）。
+ *
+ * <p>子类实现：
+ * - HeapKeyedStateBackend：内存状态后端
+ * - RocksDBKeyedStateBackend：RocksDB 状态后端
+ *
  * @param <K> Type of the key by which state is keyed.
  */
 public abstract class AbstractKeyedStateBackend<K>
@@ -56,25 +78,25 @@ public abstract class AbstractKeyedStateBackend<K>
                 TestableKeyedStateBackend<K>,
                 InternalKeyContext<K> {
 
-    /** The key serializer. */
+    /** The key serializer. 【注释】Key 序列化器，用于将 Key 序列化/反序列化 */
     protected final TypeSerializer<K> keySerializer;
 
-    /** Listeners to changes of ({@link #keyContext}). */
+    /** Listeners to changes of ({@link #keyContext}). 【注释】Key 切换监听器列表 */
     private final ArrayList<KeySelectionListener<K>> keySelectionListeners;
 
-    /** So that we can give out state when the user uses the same key. */
+    /** So that we can give out state when the user uses the same key. 【注释】状态名称到状态句柄的缓存 */
     private final HashMap<String, InternalKvState<K, ?, ?>> keyValueStatesByName;
 
-    /** For caching the last accessed partitioned state. */
+    /** For caching the last accessed partitioned state. 【注释】上一次访问的状态名称（缓存优化） */
     private String lastName;
 
     @SuppressWarnings("rawtypes")
     private InternalKvState lastState;
 
-    /** The number of key-groups aka max parallelism. */
+    /** The number of key-groups aka max parallelism. 【注释】KeyGroup 总数（等于最大并行度） */
     protected final int numberOfKeyGroups;
 
-    /** Range of key-groups for which this backend is responsible. */
+    /** Range of key-groups for which this backend is responsible. 【注释】当前 subtask 负责的 KeyGroup 范围 */
     protected final KeyGroupRange keyGroupRange;
 
     /** KvStateRegistry helper for this task. */

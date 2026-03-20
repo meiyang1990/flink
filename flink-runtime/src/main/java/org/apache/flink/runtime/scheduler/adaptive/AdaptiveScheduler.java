@@ -180,6 +180,37 @@ import static org.apache.flink.runtime.scheduler.adaptive.ForwardEdgesAdapter.co
  *
  * <p>2) Context methods, which are called by states, to either transition into another state or
  * access functionality of some component in the scheduler.
+ *
+ * <p>【学习型注释】
+ * AdaptiveScheduler 是 Flink 的自适应调度器实现（FLIP-160），专为流式作业设计。
+ * 核心特性：当集群资源不足以满足配置的并行度时，自动降低并行度以启动作业。
+ *
+ * <p>与 DefaultScheduler 的对比：
+ * - DefaultScheduler：资源不足时等待，直到满足配置的并行度才启动
+ * - AdaptiveScheduler：资源不足时自动降低并行度，"有多少资源用多少资源"
+ *
+ * <p>状态机设计（State Pattern）：
+ * 调度器行为由多个 State 类控制，每个状态决定允许哪些 RPC 和状态转换：
+ * - Created：初始创建状态
+ * - WaitingForResources：等待资源分配
+ * - CreatingExecutionGraph：构建执行图
+ * - Executing：作业正在执行
+ * - Restarting：作业重启中
+ * - Failing：作业失败处理中
+ * - Finished：作业完成
+ * - StopWithSavepoint：停止并保存点
+ *
+ * <p>声明式资源管理：
+ * 使用 DeclarativeSlotPool 声明资源需求，ResourceManager 异步分配 Slot。
+ * 调度器监听 Slot 变化，动态调整执行计划。
+ *
+ * <p>适用场景：
+ * - 资源弹性环境（如 Kubernetes、YARN）
+ * - 希望快速启动作业，而非等待所有资源就绪
+ * - 流式作业（不支持批处理的 BLOCKING 数据交换）
+ *
+ * <p>启用方式：
+ * 配置 scheduler-mode: REACTIVE 或使用 execution.scheduler = adaptive
  */
 public class AdaptiveScheduler
         implements SchedulerNG,
@@ -215,6 +246,12 @@ public class AdaptiveScheduler
     /**
      * Consolidated settings for the adaptive scheduler. This class is used to avoid passing around
      * multiple config options.
+     *
+     * <p>【注释】AdaptiveScheduler 的配置参数封装类，核心配置项：
+     * - submissionResourceWaitTimeout：提交后等待资源的超时时间（REACTIVE 模式下为 -1 表示无限等待）
+     * - submissionResourceStabilizationTimeout：资源稳定期，等待更多资源到达后再启动
+     * - executingCooldownTimeout：扩缩容后的冷却期，避免频繁扩缩容
+     * - rescaleOnFailedCheckpointCount：连续 N 次 Checkpoint 失败后触发扩缩容
      */
     public static class Settings {
 
@@ -391,15 +428,20 @@ public class AdaptiveScheduler
         }
     }
 
+    /** 【注释】配置参数 */
     private final Settings settings;
+    /** 【注释】状态转换管理器工厂，用于创建控制状态转换时机的管理器 */
     private final StateTransitionManagerFactory stateTransitionManagerFactory;
 
+    /** 【注释】作业图，包含逻辑执行计划 */
     private final JobGraph jobGraph;
 
     private final JobInfo jobInfo;
 
+    /** 【注释】初始并行度存储，保存每个顶点的原始并行度配置 */
     private final VertexParallelismStore initialParallelismStore;
 
+    /** 【注释】声明式 Slot 池，异步获取和管理计算资源 */
     private final DeclarativeSlotPool declarativeSlotPool;
 
     private final long initializationTimestamp;
@@ -426,12 +468,16 @@ public class AdaptiveScheduler
 
     private final ExecutionGraphFactory executionGraphFactory;
 
+    /** 【注释】当前调度器状态，状态机模式核心。初始为 Created 状态 */
     private State state = new Created(this, LOG);
 
+    /** 【注释】状态转换中标记，防止并发状态转换 */
     private boolean isTransitioningState = false;
 
+    /** 【注释】作业重启次数统计 */
     private int numRestarts = 0;
 
+    /** 【注释】作业扩缩容次数统计 */
     private int numRescales = 0;
 
     private final MutableVertexAttemptNumberStore vertexAttemptNumberStore =

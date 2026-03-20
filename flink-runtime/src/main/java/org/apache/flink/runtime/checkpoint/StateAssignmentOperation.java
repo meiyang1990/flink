@@ -64,6 +64,30 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * This class encapsulates the operation of assigning restored state when restoring from a
  * checkpoint.
+ *
+ * <p>【学习型注释】
+ * StateAssignmentOperation 负责从 Checkpoint/Savepoint 恢复时的状态分配操作。
+ * 这是 Flink 状态恢复机制的核心组件，处理状态重分布的复杂场景。
+ *
+ * <p>核心挑战 - 并行度变更时的状态重分配：
+ * 当作业恢复时并行度发生变化，需要将原有状态重新分配到新的 Task 实例。
+ *
+ * <p>状态分配流程（3 个阶段）：
+ * 1. buildStateAssignments()：构建状态分配信息，匹配 Operator 和状态
+ * 2. repartitionState()：执行状态重分区，处理 KeyGroup 重映射
+ * 3. applyStateAssignments()：将状态实际分配给每个 Task
+ *
+ * <p>支持的状态类型：
+ * - Keyed State：按 KeyGroup 范围重分配，确保相同 Key 映射到同一 Task
+ * - Operator State（SPLIT_DISTRIBUTE/UNION/BROADCAST）：按模式重分配
+ * - Channel State：输入通道和结果分区状态，支持 Unaligned Checkpoint
+ *
+ * <p>关键配置：
+ * - allowNonRestoredState：是否允许跳过无法恢复的状态
+ * - recoverOutputOnDownstreamTask：是否在下游 Task 恢复输出通道状态
+ *
+ * <p>扩缩容支持：
+ * Flink 通过 SubtaskStateMapper 确定状态如何在旧/新并行实例间映射。
  */
 @Internal
 public class StateAssignmentOperation {
@@ -102,6 +126,13 @@ public class StateAssignmentOperation {
         this.vertexAssignments = CollectionUtil.newHashMapWithExpectedSize(tasks.size());
     }
 
+    /**
+     * 【注释】状态分配入口方法，执行完整的状态恢复流程：
+     * 1. 检查状态映射完整性（所有 Operator 都能找到对应状态）
+     * 2. 构建状态分配关系
+     * 3. 重分区状态（处理并行度变更）
+     * 4. 应用状态到具体 Task
+     */
     public void assignStates() {
         checkStateMappingCompleteness(allowNonRestoredState, operatorStates, tasks);
 

@@ -76,6 +76,25 @@ import java.util.Collection;
  *
  * <p>State backend implementations have to be thread-safe. Multiple threads may be creating
  * keyed-/operator state backends concurrently.
+ *
+ * <p>【学习型注释】
+ * StateBackend 是 Flink 状态管理的核心抽象，定义了状态如何存储和检查点。
+ *
+ * <p>Flink 提供的实现：
+ * - HashMapStateBackend：状态存储在 TaskManager 内存（JVM 堆），轻量但受内存限制
+ * - EmbeddedRocksDBStateBackend：状态存储在 RocksDB（本地磁盘），支持 TB 级状态
+ *
+ * <p>核心职责：
+ * 1. 创建 KeyedStateBackend：管理按 Key 分区的状态（ValueState、ListState 等）
+ * 2. 创建 OperatorStateBackend：管理算子级别状态（如 Kafka offset）
+ *
+ * <p>与 CheckpointStorage 的关系：
+ * StateBackend 决定运行时状态如何存储，CheckpointStorage 决定检查点数据持久化到哪里。
+ * Flink 1.13+ 二者分离，可以独立配置（如内存状态后端 + HDFS 检查点存储）。
+ *
+ * <p>配置方式：
+ * - 代码配置：env.setStateBackend(new HashMapStateBackend())
+ * - 配置文件：state.backend: hashmap 或 rocksdb
  */
 @PublicEvolving
 public interface StateBackend extends java.io.Serializable {
