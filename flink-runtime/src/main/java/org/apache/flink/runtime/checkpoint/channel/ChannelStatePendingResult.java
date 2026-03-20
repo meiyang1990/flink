@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -43,7 +44,10 @@ import static java.util.UUID.randomUUID;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** The pending result of channel state for a specific checkpoint-subtask. */
+/** 
+ * The pending result of channel state for a specific checkpoint-subtask. 
+ * <p>【学习型注释】封装特定检查点下某个子任务通道状态的待处理结果。用于收集通道写入过程中的偏移量元数据，并在完成后生成相应的状态句柄。
+ */
 public class ChannelStatePendingResult {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChannelStatePendingResult.class);
@@ -56,8 +60,10 @@ public class ChannelStatePendingResult {
     // Result related
     private final ChannelStateSerializer serializer;
     private final ChannelStateWriter.ChannelStateWriteResult result;
+    // 【学习型注释】维护输入通道状态的元信息（偏移量和大小）
     private final Map<InputChannelInfo, AbstractChannelStateHandle.StateContentMetaInfo>
             inputChannelOffsets = new HashMap<>();
+    // 【学习型注释】维护输出分区状态的元信息
     private final Map<ResultSubpartitionInfo, AbstractChannelStateHandle.StateContentMetaInfo>
             resultSubpartitionOffsets = new HashMap<>();
     private boolean allInputsReceived = false;
@@ -102,6 +108,7 @@ public class ChannelStatePendingResult {
         allOutputsReceived = true;
     }
 
+    // 【学习型注释】检查点写入完成后调用，根据收集到的偏移量元数据构建最终的 ChannelStateHandle 并通知完成
     public void finishResult(@Nullable StreamStateHandle stateHandle) throws IOException {
         checkState(
                 stateHandle != null
@@ -119,6 +126,7 @@ public class ChannelStatePendingResult {
                 HandleFactory.RESULT_SUBPARTITION);
     }
 
+    // 【学习型注释】辅助方法，基于通道元信息构建 StateHandle 并填充 Future
     private <I, H extends AbstractChannelStateHandle<I>> void complete(
             StreamStateHandle underlying,
             CompletableFuture<Collection<H>> future,
@@ -136,6 +144,7 @@ public class ChannelStatePendingResult {
                 handles);
     }
 
+    // 【学习型注释】创建具体的 ChannelStateHandle，处理内存状态（内存中拷贝数据）与外部存储状态（基于 underlying 流创建）
     private <I, H extends AbstractChannelStateHandle<I>> H createHandle(
             HandleFactory<I, H> handleFactory,
             StreamStateHandle underlying,

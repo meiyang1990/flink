@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -51,7 +52,10 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** Writes channel state for multiple subtasks of the same checkpoint. */
+/** 
+ * Writes channel state for multiple subtasks of the same checkpoint. 
+ * <p>【学习型注释】用于将同一检查点中多个子任务的通道状态写入流中。它维护一个共享的输出流，将各子任务的输入/输出缓冲区数据序列化存储，提高快照效率。
+ */
 @NotThreadSafe
 class ChannelStateCheckpointWriter {
     private static final Logger LOG = LoggerFactory.getLogger(ChannelStateCheckpointWriter.class);
@@ -117,6 +121,7 @@ class ChannelStateCheckpointWriter {
         runWithChecks(() -> serializer.writeHeader(dataStream));
     }
 
+    // 【学习型注释】注册子任务的写入结果，初始化该子任务的 PendingResult 用于后续元数据管理
     void registerSubtaskResult(
             SubtaskID subtaskID, ChannelStateWriter.ChannelStateWriteResult result) {
         // The writer shouldn't register any subtask after writer has exception or is done,
@@ -133,6 +138,7 @@ class ChannelStateCheckpointWriter {
         pendingResults.put(subtaskID, pendingResult);
     }
 
+    // 【学习型注释】释放子任务，如果所有待注册子任务处理完毕，尝试触发完成操作
     void releaseSubtask(SubtaskID subtaskID) throws Exception {
         if (subtasksToRegister.remove(subtaskID)) {
             // If all checkpoint of other subtasks of this writer are completed, and
@@ -142,6 +148,7 @@ class ChannelStateCheckpointWriter {
         }
     }
 
+    // 【学习型注释】写入输入通道缓冲区数据，调用底层序列化器进行编码，并记录偏移量信息
     void writeInput(
             JobVertexID jobVertexID, int subtaskIndex, InputChannelInfo info, Buffer buffer) {
         try {
@@ -161,6 +168,7 @@ class ChannelStateCheckpointWriter {
         }
     }
 
+    // 【学习型注释】写入输出子分区缓冲区数据，逻辑与输入写入类似
     void writeOutput(
             JobVertexID jobVertexID, int subtaskIndex, ResultSubpartitionInfo info, Buffer buffer) {
         try {
@@ -180,6 +188,7 @@ class ChannelStateCheckpointWriter {
         }
     }
 
+    // 【学习型注释】核心写入方法：序列化数据并更新对应通道的状态元数据（记录位置偏移）
     private <K> void write(
             Map<K, StateContentMetaInfo> offsets,
             K key,
@@ -200,6 +209,7 @@ class ChannelStateCheckpointWriter {
                 });
     }
 
+    // 【学习型注释】标记子任务输入完成
     void completeInput(JobVertexID jobVertexID, int subtaskIndex) throws Exception {
         if (isDone()) {
             return;
@@ -208,6 +218,7 @@ class ChannelStateCheckpointWriter {
         tryFinishResult();
     }
 
+    // 【学习型注释】标记子任务输出完成
     void completeOutput(JobVertexID jobVertexID, int subtaskIndex) throws Exception {
         if (isDone()) {
             return;
@@ -216,6 +227,7 @@ class ChannelStateCheckpointWriter {
         tryFinishResult();
     }
 
+    // 【学习型注释】检查所有子任务是否全部处理完毕，如果是则提交写入并完成所有待定结果
     public void tryFinishResult() throws Exception {
         if (!subtasksToRegister.isEmpty()) {
             // Some subtasks are not registered yet
@@ -237,6 +249,7 @@ class ChannelStateCheckpointWriter {
         }
     }
 
+    // 【学习型注释】完成写入并将最终的状态句柄分发给各个子任务的结果对象
     private void finishWriteAndResult() throws IOException {
         StreamStateHandle stateHandle = null;
         if (checkpointStream.getPos() == serializer.getHeaderLength()) {
@@ -268,6 +281,7 @@ class ChannelStateCheckpointWriter {
         return false;
     }
 
+    // 【学习型注释】辅助运行方法，处理执行中的异常并将其转化为失败状态
     private void runWithChecks(RunnableWithException r) {
         try {
             checkState(!isDone(), "results are already completed", pendingResults.values());
@@ -283,6 +297,7 @@ class ChannelStateCheckpointWriter {
     /**
      * The throwable is just used for specific subtask that triggered the failure. Other subtasks
      * should fail by {@link CHANNEL_STATE_SHARED_STREAM_EXCEPTION}.
+     * <p>【学习型注释】标记指定子任务的失败，并触发整个检查点的通道状态写入失败处理
      */
     public void fail(JobVertexID jobVertexID, int subtaskIndex, Throwable throwable) {
         if (isDone()) {
@@ -308,6 +323,7 @@ class ChannelStateCheckpointWriter {
         failResultAndCloseStream(throwable);
     }
 
+    // 【学习型注释】处理整体写入失败，关闭检查点流并通知所有结果对象失败
     public void failResultAndCloseStream(Throwable e) {
         for (ChannelStatePendingResult result : pendingResults.values()) {
             result.fail(e);
