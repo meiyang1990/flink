@@ -170,79 +170,112 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
     // ------------------------------------------------------------------------
 
+    // 作业的主配置信息
     private final JobMasterConfiguration jobMasterConfiguration;
 
+    // 当前 JobMaster 的资源 ID
     private final ResourceID resourceId;
 
+    // 作业的执行计划，定义了作业的逻辑拓扑
     private final ExecutionPlan executionPlan;
 
+    // RPC 通信超时时间
     private final Duration rpcTimeout;
 
+    // 高可用服务，用于 Leader 选举和状态存储
     private final HighAvailabilityServices highAvailabilityServices;
 
+    // 用于写入和读取 Blob 数据的组件
     private final BlobWriter blobWriter;
 
+    // 心跳服务工厂，用于创建心跳管理器
     private final HeartbeatServices heartbeatServices;
 
+    // 异步任务执行器
     private final ScheduledExecutorService futureExecutor;
 
+    // IO 操作执行器
     private final Executor ioExecutor;
 
+    // 作业完成时的回调操作
     private final OnCompletionActions jobCompletionActions;
 
+    // 致命错误处理器，用于处理非预期的系统级错误
     private final FatalErrorHandler fatalErrorHandler;
 
+    // 用户代码加载器
     private final ClassLoader userCodeLoader;
 
+    // Slot 池服务，用于管理和分配资源 Slot
     private final SlotPoolService slotPoolService;
 
+    // 初始化时间戳
     private final long initializationTimestamp;
 
+    // 是否从 TaskManager 地址解析主机名
     private final boolean retrieveTaskManagerHostName;
 
     // --------- ResourceManager --------
 
+    // ResourceManager 的 Leader 检索服务
     private final LeaderRetrievalService resourceManagerLeaderRetriever;
 
     // --------- TaskManagers --------
 
+    // 已注册的 TaskManager 映射表
     private final Map<ResourceID, TaskManagerRegistration> registeredTaskManagers;
 
+    // 数据分发主控制器
     private final ShuffleMaster<?> shuffleMaster;
 
     // --------- Scheduler --------
 
+    // 下一代作业调度器
     private final SchedulerNG schedulerNG;
 
+    // 作业状态监听器
     private final JobManagerJobStatusListener jobStatusListener;
 
+    // 作业对应的度量指标组
     private final JobManagerJobMetricGroup jobManagerJobMetricGroup;
 
     // -------- Misc ---------
 
+    // 累加器映射表
     private final Map<String, Object> accumulators;
 
+    // 分区跟踪器，用于管理数据分区
     private final JobMasterPartitionTracker partitionTracker;
 
+    // 执行部署跟踪器
     private final ExecutionDeploymentTracker executionDeploymentTracker;
+    // 执行部署协调器
     private final ExecutionDeploymentReconciler executionDeploymentReconciler;
+    // 错误增强器集合
     private final Collection<FailureEnricher> failureEnrichers;
 
     // -------- Mutable fields ---------
 
+    // ResourceManager 的地址，可变
     @Nullable private ResourceManagerAddress resourceManagerAddress;
 
+    // ResourceManager 的连接状态
     @Nullable private ResourceManagerConnection resourceManagerConnection;
 
+    // 已建立的 ResourceManager 连接
     @Nullable private EstablishedResourceManagerConnection establishedResourceManagerConnection;
 
+    // TaskManager 心跳管理器
     private HeartbeatManager<TaskExecutorToJobManagerHeartbeatPayload, AllocatedSlotReport>
             taskManagerHeartbeatManager;
 
+    // ResourceManager 心跳管理器
     private HeartbeatManager<Void, Void> resourceManagerHeartbeatManager;
 
+    // 阻塞节点处理器，用于处理黑名单机制
     private final BlocklistHandler blocklistHandler;
 
+    // 获取到的包含度量信息的分区
     private final Map<ResultPartitionID, PartitionWithMetrics> fetchedPartitionsWithMetrics =
             new HashMap<>();
 
@@ -477,9 +510,12 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
     }
 
     // ----------------------------------------------------------------------------------------------
-    // Lifecycle management
+    // 生命周期管理 (Lifecycle management)
     // ----------------------------------------------------------------------------------------------
 
+    /**
+     * 当 JobMaster 启动时调用，执行作业启动逻辑。
+     */
     @Override
     protected void onStart() throws JobMasterException {
         try {
@@ -492,7 +528,9 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         }
     }
 
-    /** Suspend the job and shutdown all other services including rpc. */
+    /**
+     * 停止作业，并关闭包括 RPC 在内的所有其他服务。
+     */
     @Override
     public CompletableFuture<Void> onStop() {
         try (MdcUtils.MdcCloseable ignored =
@@ -502,7 +540,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                     executionPlan.getName(),
                     executionPlan.getJobID());
 
-            // make sure there is a graceful exit
+            // 确保优雅退出
             return stopJobExecution(
                             new FlinkException(
                                     String.format(
