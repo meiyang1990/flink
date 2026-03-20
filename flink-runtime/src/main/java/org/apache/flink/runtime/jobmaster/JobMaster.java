@@ -161,6 +161,16 @@ import static org.apache.flink.util.Preconditions.checkState;
  * 5. 故障处理：监控 Task 心跳，处理 Task 失败和重启
  * 6. 状态查询：提供作业状态、指标、累积器等查询接口
  * 作为 RPC 端点，它通过 JobMasterGateway 接收来自 Dispatcher、TaskExecutor、ResourceManager 的远程调用。
+ * <p>【学习型注释】
+ * JobMaster 是 Flink 作业执行的核心协调者，每个作业对应一个 JobMaster 实例。
+ * 主要职责包括：
+ * 1. 维护 ExecutionGraph：管理作业的执行状态、Task 调度、失败恢复
+ * 2. 资源管理：向 ResourceManager 申请 Slot，与 SlotPool 协调资源分配
+ * 3. 任务部署：将 Task 部署到 TaskExecutor 上执行
+ * 4. Checkpoint 协调：触发和管理分布式快照
+ * 5. 故障处理：监控 Task 心跳，处理 Task 失败和重启
+ * 6. 状态查询：提供作业状态、指标、累积器等查询接口
+ * 作为 RPC 端点，它通过 JobMasterGateway 接收来自 Dispatcher、TaskExecutor、ResourceManager 的远程调用。
  */
 public class JobMaster extends FencedRpcEndpoint<JobMasterId>
         implements JobMasterGateway, JobMasterService {
@@ -515,6 +525,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
     /**
      * 当 JobMaster 启动时调用，执行作业启动逻辑。
+     * 初始化 RPC 服务、心跳服务，并尝试与 ResourceManager 建立连接以调度作业。
      */
     @Override
     protected void onStart() throws JobMasterException {
@@ -529,7 +540,8 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
     }
 
     /**
-     * 停止作业，并关闭包括 RPC 在内的所有其他服务。
+     * 停止作业执行，并关闭所有相关服务，包括 RPC 连接、心跳管理器、SlotPool 等。
+     * 该方法确保作业优雅退出，清理资源。
      */
     @Override
     public CompletableFuture<Void> onStop() {
