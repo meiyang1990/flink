@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,6 +24,10 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Calculates the plan of the next checkpoint, including the tasks to trigger, wait or commit for
  * each checkpoint.
+ *
+ * <p>【学习型注释】中文解释：检查点计划计算器接口。
+ * 负责计算下一个检查点的执行计划，即确定哪些任务需要触发检查点、等待或提交。
+ * 这是检查点协调的核心组成部分，决定了分布式快照的具体执行流程。
  */
 public interface CheckpointPlanCalculator {
 

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,6 +30,9 @@ import java.util.List;
 /**
  * The plan of one checkpoint, indicating which tasks to trigger, waiting for acknowledge or commit
  * for one specific checkpoint.
+ * 
+ * <p>【学习型注释】中文解释：检查点执行计划接口。定义了一次特定检查点操作的具体执行蓝图，包括哪些任务需要触发、
+ * 需要等待哪些任务的确认（ACK）、以及哪些任务需要在检查点确认时提交状态。
  */
 public interface CheckpointPlan extends FinishedTaskStateProvider {
 

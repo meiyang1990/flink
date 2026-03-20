@@ -47,7 +47,10 @@ import java.util.concurrent.Executor;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** Base class for all applications. */
+/** 
+ * Base class for all applications. 
+ * <p>【学习型注释】所有 Flink 应用的基类，负责维护应用的状态机、生命周期时间戳、异常历史以及作业列表。
+ */
 public abstract class AbstractApplication implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractApplication.class);
@@ -63,6 +66,7 @@ public abstract class AbstractApplication implements Serializable {
      * application transitioned into a certain status. The index into this array is the ordinal of
      * the enum value, i.e. the timestamp when the application went into state "RUNNING" is at
      * {@code timestamps[RUNNING.ordinal()]}.
+     * <p>【学习型注释】记录应用转换到各个状态的时间戳，用于监控和统计应用的耗时分布。
      */
     private final long[] statusTimestamps;
 
@@ -75,6 +79,7 @@ public abstract class AbstractApplication implements Serializable {
      * ApplicationStatusListener#notifyApplicationStatusChange} when the application state changes.
      * For example, the Dispatcher registers itself as a listener to perform operations such as
      * archiving when the application reaches a terminal state.
+     * <p>【学习型注释】注册的应用状态监听器列表，当应用状态发生变化时通知它们。例如，Dispatcher 注册自己以在应用达到终态时执行归档。
      */
     private transient List<ApplicationStatusListener> statusListeners = new ArrayList<>();
 
@@ -98,6 +103,7 @@ public abstract class AbstractApplication implements Serializable {
      * @param mainThreadExecutor the executor bound to the main thread.
      * @param errorHandler the handler for fatal errors.
      * @return a future indicating that the execution request has been accepted.
+     * <p>【学习型注释】异步运行应用的入口方法，要求在 Dispatcher 主线程执行。
      */
     public abstract CompletableFuture<Acknowledge> execute(
             final DispatcherGateway dispatcherGateway,
@@ -112,6 +118,7 @@ public abstract class AbstractApplication implements Serializable {
      * appropriate state transitions of the application.
      *
      * <p><b>Note:</b> This method must be called in the main thread of the {@link Dispatcher}.
+     * <p>【学习型注释】取消应用执行，负责触发取消流程并处理状态转换，要求在 Dispatcher 主线程执行。
      */
     public abstract void cancel();
 
@@ -119,6 +126,7 @@ public abstract class AbstractApplication implements Serializable {
      * Cleans up execution associated with the application.
      *
      * <p>This method is typically invoked when the cluster is shutting down.
+     * <p>【学习型注释】清理与应用相关的资源，通常在集群关闭时调用。
      */
     public abstract void dispose();
 
@@ -145,6 +153,7 @@ public abstract class AbstractApplication implements Serializable {
      * Adds a job ID to the jobs set.
      *
      * <p><b>Note:</b>This method must be called in the main thread of the {@link Dispatcher}.
+     * <p>【学习型注释】将作业 ID 添加到应用关联的作业集合中，要求在 Dispatcher 主线程执行。
      */
     public boolean addJob(JobID jobId) {
         return jobs.add(jobId);
@@ -158,6 +167,7 @@ public abstract class AbstractApplication implements Serializable {
      * Registers a status listener.
      *
      * <p>This method is not thread-safe and should not be called concurrently.
+     * <p>【学习型注释】注册状态监听器，非线程安全方法。
      */
     public void registerStatusListener(ApplicationStatusListener listener) {
         getStatusListeners().add(listener);
@@ -243,7 +253,7 @@ public abstract class AbstractApplication implements Serializable {
                                 listener.notifyApplicationStatusChange(applicationId, targetState));
     }
 
-    // 【学习型注释】根据 ALLOWED_TRANSITIONS 静态映射校验目标状态是否合法
+    // 【学习型注释】根据 ALLOWED_TRANSITIONS 静态映射校验目标状态是否合法，防止非法的状态流转
     private void validateTransition(ApplicationState targetState) {
         Set<ApplicationState> allowedTransitions = ALLOWED_TRANSITIONS.get(applicationState);
         if (allowedTransitions == null || !allowedTransitions.contains(targetState)) {

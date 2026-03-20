@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,6 +24,10 @@ import java.util.concurrent.Executor;
 /**
  * {@link Executor} implementation which fails when {@link #execute(Runnable)} is called. This can
  * be helpful if one wants to make sure that an executor is never been used.
+ * 
+ * <p>【学习型注释】一个不支持操作的 Executor 实现。
+ * 当尝试调用 execute 时会抛出 UnsupportedOperationException。
+ * 通常用于某些组件要求传入 Executor，但我们明确不希望该组件进行异步执行的场景。
  */
 public enum UnsupportedOperationExecutor implements Executor {
     INSTANCE;

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -66,6 +67,8 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * Factory of {@link TaskDeploymentDescriptor} to deploy {@link
  * org.apache.flink.runtime.taskmanager.Task} from {@link Execution}.
+ * <p>【学习型注释】TaskDeploymentDescriptor 的工厂类，负责根据 Execution（执行尝试）构建任务部署描述符，
+ * 处理复杂的 shuffle 描述符卸载、序列化以及 Blob 存储交互。
  */
 public class TaskDeploymentDescriptorFactory {
     /**
@@ -109,6 +112,9 @@ public class TaskDeploymentDescriptorFactory {
         return serializedJobInformation;
     }
 
+    /**
+     * 【学习型注释】根据当前的 Execution 和分区信息，创建 TaskDeploymentDescriptor。
+     */
     public TaskDeploymentDescriptor createDeploymentDescriptor(
             Execution execution,
             AllocationID allocationID,
@@ -129,6 +135,9 @@ public class TaskDeploymentDescriptorFactory {
                 createInputGateDeploymentDescriptors(executionVertex));
     }
 
+    /**
+     * 【学习型注释】为 ExecutionVertex 创建 InputGateDeploymentDescriptor 列表，处理普通分区和集群分区。
+     */
     private List<InputGateDeploymentDescriptor> createInputGateDeploymentDescriptors(
             ExecutionVertex executionVertex) throws IOException, ClusterDatasetCorruptedException {
 
@@ -302,6 +311,9 @@ public class TaskDeploymentDescriptorFactory {
                 : new TaskDeploymentDescriptor.Offloaded<>(either.right());
     }
 
+    /**
+     * 【学习型注释】获取消费分区的 ShuffleDescriptor，逻辑涉及分区可用性检查及 location 约束匹配。
+     */
     public static ShuffleDescriptor getConsumedPartitionShuffleDescriptor(
             IntermediateResultPartition consumedPartition,
             PartitionLocationConstraint partitionDeploymentConstraint,
@@ -353,12 +365,6 @@ public class TaskDeploymentDescriptorFactory {
             return consumedPartitionDescriptor.getShuffleDescriptor();
         } else if (partitionDeploymentConstraint == PartitionLocationConstraint.CAN_BE_UNKNOWN) {
             // The producing task might not have registered the partition yet
-            //
-            // Currently, UnknownShuffleDescriptor will be created only if there is an intra-region
-            // blocking edge in the graph. This means that when its consumer restarts, the
-            // producer of the UnknownShuffleDescriptors will also restart. Therefore, it's safe to
-            // cache UnknownShuffleDescriptors and there's no need to update the cache when the
-            // corresponding partition becomes consumable.
             return new UnknownShuffleDescriptor(consumedPartitionId);
         } else {
             // throw respective exceptions
@@ -409,6 +415,7 @@ public class TaskDeploymentDescriptorFactory {
     /**
      * Defines whether the partition's location must be known at deployment time or can be unknown
      * and, therefore, updated later.
+     * <p>【学习型注释】定义分区位置在部署时是必须已知（Streaming）还是可以未知（Batch，后续更新）。
      */
     public enum PartitionLocationConstraint {
         MUST_BE_KNOWN,

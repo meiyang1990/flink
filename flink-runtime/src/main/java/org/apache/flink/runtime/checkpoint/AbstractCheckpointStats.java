@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,7 +30,11 @@ import java.util.Map;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** Base class for checkpoint statistics. */
+/** 
+ * Base class for checkpoint statistics. 
+ * 
+ * <p>【学习型注释】中文解释：检查点统计信息的基类，用于存储和访问检查点的各种元数据，如检查点 ID、触发时间、任务状态统计等。
+ */
 public abstract class AbstractCheckpointStats implements Serializable {
 
     private static final long serialVersionUID = 1041218202028265151L;

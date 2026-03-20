@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,9 +27,15 @@ import org.apache.flink.util.SerializedValue;
 
 import javax.annotation.Nullable;
 
-/** RPC Gateway interface for messages to the CheckpointCoordinator. */
+/** 
+ * RPC Gateway interface for messages to the CheckpointCoordinator. 
+ * 
+ * <p>【学习型注释】中文解释：用于 TaskManager 向 JobManager 中的 CheckpointCoordinator 发送检查点相关 RPC 消息的网关接口。
+ * 包括 ack、decline 以及指标上报。
+ */
 public interface CheckpointCoordinatorGateway extends RpcGateway {
 
+    /** 任务执行确认：子任务完成检查点快照后调用此方法向协调器确认 */
     void acknowledgeCheckpoint(
             final JobID jobID,
             final ExecutionAttemptID executionAttemptID,
@@ -36,14 +43,17 @@ public interface CheckpointCoordinatorGateway extends RpcGateway {
             final CheckpointMetrics checkpointMetrics,
             @Nullable final SerializedValue<TaskStateSnapshot> subtaskState);
 
+    /** 任务拒绝检查点：子任务拒绝当前检查点时调用 */
     void declineCheckpoint(DeclineCheckpoint declineCheckpoint);
 
+    /** 上报检查点指标信息 */
     void reportCheckpointMetrics(
             JobID jobID,
             ExecutionAttemptID executionAttemptID,
             long checkpointId,
             CheckpointMetrics checkpointMetrics);
 
+    /** 上报初始化指标信息 */
     void reportInitializationMetrics(
             JobID jobId,
             ExecutionAttemptID executionAttemptId,

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -31,6 +32,9 @@ import static org.apache.flink.util.concurrent.FutureUtils.checkStateAndGet;
  * A builder for {@link CheckpointMetrics}.
  *
  * <p>This class is not thread safe, but parts of it can actually be used from different threads.
+ * 
+ * <p>【学习型注释】中文解释：{@link CheckpointMetrics} 的构建器。用于在快照执行过程中逐步累积并设置检查点执行的指标数据，
+ * 如对齐字节数、对齐耗时、同步/异步执行阶段耗时等。
  */
 @NotThreadSafe
 public class CheckpointMetricsBuilder {
@@ -133,6 +137,7 @@ public class CheckpointMetricsBuilder {
         return this;
     }
 
+    /** 构建最终的检查点指标对象 */
     public CheckpointMetrics build() {
         return new CheckpointMetrics(
                 checkStateAndGet(bytesProcessedDuringAlignment),
@@ -146,6 +151,7 @@ public class CheckpointMetricsBuilder {
                 totalBytesPersisted);
     }
 
+    /** 用于构建不完整的指标快照 */
     public CheckpointMetrics buildIncomplete() {
         return new CheckpointMetrics(
                 bytesProcessedDuringAlignment.getNow(CheckpointMetrics.UNSET),

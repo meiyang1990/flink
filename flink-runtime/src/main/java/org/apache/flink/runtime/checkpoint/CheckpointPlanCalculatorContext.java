@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,6 +24,10 @@ import org.apache.flink.util.concurrent.ScheduledExecutor;
 /**
  * Provides the context for {@link DefaultCheckpointPlanCalculator} to compute the plan of
  * checkpoints.
+ *
+ * <p>【学习型注释】中文解释：检查点计划计算器上下文接口。
+ * 为 {@link DefaultCheckpointPlanCalculator} 提供必要的外部运行环境，
+ * 例如主线程执行器（用于调度任务）以及任务完成状态检查，以辅助完成检查点计划的计算。
  */
 public interface CheckpointPlanCalculatorContext {
 

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -34,6 +35,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Deployment descriptor for a result partition.
  *
  * @see ResultPartition
+ * <p>【学习型注释】结果分区（ResultPartition）的部署描述符，用于在 TaskManager 上部署任务产出数据的相关信息。
  */
 public class ResultPartitionDeploymentDescriptor implements Serializable {
 

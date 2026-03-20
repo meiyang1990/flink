@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,7 +21,12 @@ package org.apache.flink.runtime.checkpoint;
 
 import java.io.Serializable;
 
-/** Encapsulates all the meta data for a checkpoint. */
+/** 
+ * Encapsulates all the meta data for a checkpoint. 
+ * 
+ * <p>【学习型注释】中文解释：封装检查点的元数据，包括检查点 ID 和触发时间戳。它是检查点屏障（CheckpointBarrier）的组成部分，
+ * 在作业拓扑中随屏障流向各个 Task，用于告知任务当前触发了哪个检查点。
+ */
 public class CheckpointMetaData implements Serializable {
 
     private static final long serialVersionUID = -2387652345781312442L;

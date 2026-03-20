@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,6 +29,9 @@ import java.util.List;
  * This class represents a {@link CompletedCheckpointStore} if checkpointing has been disabled.
  * Consequently, no component should use methods other than {@link
  * CompletedCheckpointStore#shutdown}.
+ * 
+ * <p>【学习型注释】中文解释：该类是 {@link CompletedCheckpointStore} 的空实现，当检查点功能被禁用时使用。
+ * 它通过枚举单例实现，除了 shutdown 方法外，所有操作方法均会抛出不支持操作异常，起到“禁用”检查点存储的功能。
  */
 public enum DeactivatedCheckpointCompletedCheckpointStore implements CompletedCheckpointStore {
     INSTANCE;
@@ -70,6 +74,7 @@ public enum DeactivatedCheckpointCompletedCheckpointStore implements CompletedCh
         throw unsupportedOperationException();
     }
 
+    // 辅助方法，用于生成统一的错误提示，表明当前存储器已失效
     private UnsupportedOperationException unsupportedOperationException() {
         return new UnsupportedOperationException(
                 String.format(

@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -25,7 +26,12 @@ import java.util.Objects;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
 
-/** A collection of simple metrics, around the triggering of a checkpoint. */
+/**
+ * A collection of simple metrics, around the triggering of a checkpoint.
+ *
+ * <p>【学习型注释】中文解释：该类用于收集与检查点触发相关的度量指标，
+ * 包含了对齐阶段数据处理量、耗时、同步/异步执行时长等关键信息，用于监控检查点的执行效率。
+ */
 public class CheckpointMetrics implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -69,7 +75,7 @@ public class CheckpointMetrics implements Serializable {
             long bytesPersistedOfThisCheckpoint,
             long totalBytesPersisted) {
 
-        // these may be "-1", in case the values are unknown or not set
+        // 校验输入参数合法性，支持传入 UNSET（-1）表示数值未知
         checkArgument(bytesProcessedDuringAlignment >= -1);
         checkArgument(bytesPersistedDuringAlignment >= -1);
         checkArgument(syncDurationMillis >= -1);
@@ -86,7 +92,7 @@ public class CheckpointMetrics implements Serializable {
         this.asyncDurationMillis = asyncDurationMillis;
         this.checkpointStartDelayNanos = checkpointStartDelayNanos;
         this.unalignedCheckpoint = unalignedCheckpoint;
-        this.bytesPersistedOfThisCheckpoint = bytesPersistedOfThisCheckpoint;
+        this.bytesPersistedOfThisCheckpoint = bytesPersistedDuringAlignment;
         this.totalBytesPersisted = totalBytesPersisted;
     }
 

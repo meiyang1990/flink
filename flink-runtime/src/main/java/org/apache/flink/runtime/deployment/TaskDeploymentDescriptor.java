@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,6 +45,7 @@ import java.util.List;
 /**
  * A task deployment descriptor contains all the information necessary to deploy a task on a task
  * manager.
+ * <p>【学习型注释】任务部署描述符，包含了在一个 TaskManager 上部署并启动一个 Flink Task 所需的所有元数据。
  */
 public final class TaskDeploymentDescriptor implements Serializable {
 
@@ -54,6 +56,7 @@ public final class TaskDeploymentDescriptor implements Serializable {
      * org.apache.flink.runtime.blob.BlobServer} or not.
      *
      * @param <T> type of the serialized value
+     * <p>【学习型注释】封装可能被卸载（Offloaded）到 BlobServer 的序列化数据。
      */
     @SuppressWarnings("unused")
     public static class MaybeOffloaded<T> implements Serializable {
@@ -269,6 +272,8 @@ public final class TaskDeploymentDescriptor implements Serializable {
      *     deserialization
      * @throws IOException during errors retrieving or reading the BLOBs
      * @throws ClassNotFoundException Class of a serialized object cannot be found.
+     * <p>【学习型注释】从 BlobStore 加载任务所需的外部元数据（如 JobInformation, TaskInformation, TaskRestore 等），
+     * 并在内存中反序列化还原，以便 Task 运行。
      */
     public void loadBigData(
             @Nullable PermanentBlobService blobService,

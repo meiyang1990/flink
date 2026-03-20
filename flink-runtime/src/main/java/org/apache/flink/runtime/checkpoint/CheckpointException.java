@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,11 +21,17 @@ package org.apache.flink.runtime.checkpoint;
 
 import org.apache.flink.util.Preconditions;
 
-/** Base class for checkpoint related exceptions. */
+/** 
+ * Base class for checkpoint related exceptions. 
+ * 
+ * <p>【学习型注释】中文解释：检查点相关异常的基类。它包装了一个 {@link CheckpointFailureReason}，
+ * 用于在异常中明确指出检查点失败的具体原因，便于后续的故障处理与错误诊断。
+ */
 public class CheckpointException extends Exception {
 
     private static final long serialVersionUID = 3257526119022486948L;
 
+    /** 记录检查点失败原因 */
     private final CheckpointFailureReason checkpointFailureReason;
 
     public CheckpointException(CheckpointFailureReason failureReason) {
@@ -48,6 +55,7 @@ public class CheckpointException extends Exception {
         this.checkpointFailureReason = Preconditions.checkNotNull(failureReason);
     }
 
+    /** 获取检查点失败的原因枚举 */
     public CheckpointFailureReason getCheckpointFailureReason() {
         return checkpointFailureReason;
     }

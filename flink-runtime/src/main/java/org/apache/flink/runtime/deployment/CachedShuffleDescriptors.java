@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -36,18 +37,24 @@ import java.util.Queue;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** {@link ShuffleDescriptor}s cache for a {@link ConsumedPartitionGroup}. */
+/** 
+ * {@link ShuffleDescriptor}s cache for a {@link ConsumedPartitionGroup}. 
+ * <p>【学习型注释】用于缓存 ConsumedPartitionGroup 的 ShuffleDescriptor，
+ * 优化任务部署时的序列化性能，支持分批次更新分区状态。
+ */
 public class CachedShuffleDescriptors {
     /**
      * Stores all serialized shuffle descriptors with indexes. For a partition, it may be added a
      * serialized unknown shuffle descriptor to this list first, and then added the real descriptor
      * later.
+     * <p>【学习型注释】存储已序列化的 ShuffleDescriptor 组。对于分区，可能先存入“未知”描述符，后续再更新真实描述符。
      */
     private final List<MaybeOffloaded<ShuffleDescriptorGroup>> serializedShuffleDescriptorGroups;
 
     /**
      * Stores all to be serialized shuffle descriptors, They will be serialized and added to
      * serializedShuffleDescriptorGroups during the next time TaskDeploymentDescriptor is generated.
+     * <p>【学习型注释】存储待序列化的 ShuffleDescriptor，在生成 TaskDeploymentDescriptor 时统一处理。
      */
     private final Queue<ShuffleDescriptorAndIndex> toBeSerialized;
 
@@ -79,6 +86,9 @@ public class CachedShuffleDescriptors {
         return new ArrayList<>(serializedShuffleDescriptorGroups);
     }
 
+    /**
+     * 【学习型注释】将 toBeSerialized 中的描述符序列化并存入已序列化列表中。
+     */
     public void serializeShuffleDescriptors(
             TaskDeploymentDescriptorFactory.ShuffleDescriptorSerializer shuffleDescriptorSerializer)
             throws IOException {
@@ -95,6 +105,9 @@ public class CachedShuffleDescriptors {
         }
     }
 
+    /**
+     * 【学习型注释】当分区处理完成时，获取真实描述符并加入待序列化队列。
+     */
     public void markPartitionFinished(IntermediateResultPartition resultPartition) {
         ShuffleDescriptor consumedPartitionShuffleDescriptor =
                 TaskDeploymentDescriptorFactory.getConsumedPartitionShuffleDescriptor(

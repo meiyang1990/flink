@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -55,6 +56,8 @@ import static org.apache.flink.util.Preconditions.checkState;
  * index range is the same for each consumed partition.
  *
  * @see SingleInputGate
+ * <p>【学习型注释】输入网关（InputGate）的部署描述符。每个 InputGate 消费一个 IntermediateDataSet 的分区，
+ * 并维护了 ShuffleDescriptor 的映射关系。
  */
 public class InputGateDeploymentDescriptor implements Serializable {
 
@@ -64,6 +67,7 @@ public class InputGateDeploymentDescriptor implements Serializable {
      * The ID of the consumed intermediate result. Each input gate consumes partitions of the
      * intermediate result specified by this ID. This ID also identifies the input gate at the
      * consuming task.
+     * <p>【学习型注释】所消费中间结果的 ID，用于标识该 InputGate 在任务中的位置。
      */
     private final IntermediateDataSetID consumedResultId;
 
@@ -73,6 +77,7 @@ public class InputGateDeploymentDescriptor implements Serializable {
     /**
      * Provides information about the number of consumed shuffle descriptors and the mapping between
      * consumed shuffle descriptor ranges and their corresponding subpartition ranges.
+     * <p>【学习型注释】消费子分区上下文，管理 ShuffleDescriptor 与物理子分区的范围映射。
      */
     private final ConsumedSubpartitionContext consumedSubpartitionContext;
 
@@ -168,6 +173,7 @@ public class InputGateDeploymentDescriptor implements Serializable {
      *
      * @return an array of {@link ShuffleDescriptor}s.
      * @throws RuntimeException if deserialization of shuffle descriptors fails.
+     * <p>【学习型注释】获取此输入网关关联的所有 ShuffleDescriptor。注意：生产环境应通过 tryLoadAndDeserializeShuffleDescriptors 显式加载。
      */
     public ShuffleDescriptor[] getShuffleDescriptors() {
         if (inputChannels == null) {
@@ -191,6 +197,9 @@ public class InputGateDeploymentDescriptor implements Serializable {
         return inputChannels;
     }
 
+    /**
+     * 【学习型注释】从 BlobStore 加载并反序列化 ShuffleDescriptor。
+     */
     public void tryLoadAndDeserializeShuffleDescriptors(
             @Nullable PermanentBlobService blobService,
             JobID jobId,
@@ -255,6 +264,9 @@ public class InputGateDeploymentDescriptor implements Serializable {
         putOrReplaceShuffleDescriptors(shuffleDescriptorGroup);
     }
 
+    /**
+     * 【学习型注释】将 ShuffleDescriptor 放置到 inputChannels 数组中对应的索引位置。
+     */
     private void putOrReplaceShuffleDescriptors(ShuffleDescriptorGroup shuffleDescriptorGroup) {
         for (ShuffleDescriptorAndIndex shuffleDescriptorAndIndex :
                 shuffleDescriptorGroup.getShuffleDescriptors()) {

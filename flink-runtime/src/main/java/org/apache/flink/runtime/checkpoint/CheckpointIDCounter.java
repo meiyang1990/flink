@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,11 +23,17 @@ import org.apache.flink.api.common.JobStatus;
 
 import java.util.concurrent.CompletableFuture;
 
-/** A checkpoint ID counter. */
+/** 
+ * A checkpoint ID counter. 
+ * 
+ * <p>【学习型注释】中文解释：检查点 ID 生成器接口。确保在分布式环境下，即便 JobMaster 发生故障重启，
+ * 也能为每个检查点生成全局唯一的、单调递增的 ID。
+ */
 public interface CheckpointIDCounter {
+    /** 初始检查点 ID，从 1 开始 */
     int INITIAL_CHECKPOINT_ID = 1;
 
-    /** Starts the {@link CheckpointIDCounter} service down. */
+    /** 启动 ID 计数器服务 */
     void start() throws Exception;
 
     /**

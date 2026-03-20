@@ -1,3 +1,4 @@
+// 这个文件已经全部加上中文注释
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -35,9 +36,11 @@ import static org.apache.flink.runtime.executiongraph.IndexRangeUtil.mergeIndexR
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/*
+/**
  * Helper class used to track and manage the relationships between shuffle descriptors and their
  * associated subpartitions.
+ * <p>【学习型注释】用于追踪和管理 ShuffleDescriptor 与其对应子分区（Subpartition）关系的上下文工具类。
+ * 核心逻辑在于将 ShuffleDescriptor 的索引范围映射到任务消费的子分区范围。
  */
 class ConsumedSubpartitionContext implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -48,20 +51,7 @@ class ConsumedSubpartitionContext implements Serializable {
     /**
      * A mapping between ranges of consumed shuffle descriptors and their corresponding subpartition
      * ranges.
-     *
-     * <p>For ALL_TO_ALL, the consumed partition range to subpartition range might be like this:
-     * task1: [0, 10] -> [0, 0]; task2: [0,5] -> [1,1]; task3: [6,10] -> [1,1], [0,10] -> [2,2].
-     * Since ALL_TO_ALL shares the same set of shuffle descriptors, the index mapping from partition
-     * rang to shuffle descriptor range is: [0,10]->[0,10]. Finally, the shuffle descriptor range to
-     * subpartition range mappings are: task1: [0, 10] -> [0, 0]; task2: [0,5] -> [1,1]; task3:
-     * [6,10] -> [1,1], [0,10] -> [2,2].
-     *
-     * <p>For POINTWISE, the consumed partition range to subpartition range might be like this:
-     * task1: [0, 0] -> [0, 10]; task2: [1, 1] -> [0,5]; task3: [1,1] -> [6,10], [2,10]->[0,10]. The
-     * mappings from partition rang to shuffle descriptor range for each task are: task1: [0,0] ->
-     * [0,0]; task2: [1,1] -> [0,0]; task3: [1,1] -> [0,0], [2,10] -> [1,9]. Finally, the shuffle
-     * descriptor range to subpartition range mappings are: task1: [0,0] -> [0,10]; task2: [0,0] ->
-     * [0,5]; task3: [0,0] -> [6,10], [1,9] -> [0,10].
+     * <p>【学习型注释】记录已消费 ShuffleDescriptor 的范围与子分区范围的映射。
      */
     private final Map<IndexRange, IndexRange> consumedShuffleDescriptorToSubpartitionRangeMap;
 
@@ -84,10 +74,10 @@ class ConsumedSubpartitionContext implements Serializable {
                 mergeIndexRanges(consumedShuffleDescriptorToSubpartitionRangeMap.keySet()));
     }
 
+    /**
+     * 【学习型注释】根据 ShuffleDescriptor 的索引查找对应的子分区范围。
+     */
     public IndexRange getConsumedSubpartitionRange(int shuffleDescriptorIndex) {
-        //  For ALL_TO_ALL the consumedShuffleDescriptorToSubpartitionRange might like this:
-        //  [0,10] -> [2,2], [0,5] -> [3,3], we need to find all the consumed subpartition ranges
-        // and return the merged result.
         List<IndexRange> consumedSubpartitionRanges = new ArrayList<>();
         for (Map.Entry<IndexRange, IndexRange> entry :
                 consumedShuffleDescriptorToSubpartitionRangeMap.entrySet()) {
@@ -111,13 +101,7 @@ class ConsumedSubpartitionContext implements Serializable {
      *
      * <p>Note: The construction is based on subscribing to consecutive subpartitions of the same
      * partition. If this assumption is violated, an exception will be thrown.
-     *
-     * @param consumedSubpartitionGroups a mapping of consumed partition index ranges to
-     *     subpartition ranges.
-     * @param consumedPartitionGroup partition group consumed by the task.
-     * @param partitionIdRetriever a function that retrieves the {@link
-     *     IntermediateResultPartitionID} for a given index.
-     * @return a {@link ConsumedSubpartitionContext} instance constructed from the input parameters.
+     * <p>【学习型注释】工厂方法：根据分区组、子分区组映射以及ID获取逻辑，构建上下文对象。
      */
     public static ConsumedSubpartitionContext buildConsumedSubpartitionContext(
             Map<IndexRange, IndexRange> consumedSubpartitionGroups,
@@ -125,10 +109,8 @@ class ConsumedSubpartitionContext implements Serializable {
             Function<Integer, IntermediateResultPartitionID> partitionIdRetriever) {
         Map<IntermediateResultPartitionID, Integer> resultPartitionsInOrder =
                 consumedPartitionGroup.getResultPartitionsInOrder();
-        // If only one range is included and the index range size is the same as the number of
-        // shuffle descriptors, it means that the task will subscribe to all partitions, i.e., the
-        // partition range is one-to-one corresponding to the shuffle descriptors. Therefore, we can
-        // directly construct the ConsumedSubpartitionContext using the subpartition range.
+        
+        // 优化处理：如果是一对一映射，直接返回构建结果
         if (consumedSubpartitionGroups.size() == 1
                 && consumedSubpartitionGroups.keySet().iterator().next().size()
                         == resultPartitionsInOrder.size()) {
@@ -142,7 +124,7 @@ class ConsumedSubpartitionContext implements Serializable {
         for (Map.Entry<IndexRange, IndexRange> entry : consumedSubpartitionGroups.entrySet()) {
             IndexRange partitionRange = entry.getKey();
             IndexRange subpartitionRange = entry.getValue();
-            // The shuffle descriptor index is consistent with the index in resultPartitionsInOrder.
+            // ShuffleDescriptor 索引与 resultPartitionsInOrder 顺序一致
             IndexRange shuffleDescriptorRange =
                     new IndexRange(
                             resultPartitionsInOrder.get(
@@ -156,9 +138,8 @@ class ConsumedSubpartitionContext implements Serializable {
             consumedShuffleDescriptorToSubpartitionRangeMap.put(
                     shuffleDescriptorRange, subpartitionRange);
         }
-        // For ALL_TO_ALL, there might be overlaps in shuffle descriptor to subpartition range map:
-        // [0,10] -> [2,2], [0,5] -> [3,3], so we need to count consumed shuffle descriptors after
-        // merging.
+        
+        // 统计合并后的 ShuffleDescriptor 数量
         int numConsumedShuffleDescriptors = 0;
         List<IndexRange> mergedConsumedShuffleDescriptor =
                 mergeIndexRanges(consumedShuffleDescriptorToSubpartitionRangeMap.keySet());
@@ -175,11 +156,6 @@ class ConsumedSubpartitionContext implements Serializable {
      *
      * <p>Note: This method is designed as a compatibility method. It assumes that the task will
      * subscribe to all shuffle descriptors and to the same subpartitions for every descriptor.
-     *
-     * @param numConsumedShuffleDescriptors the total number of consumed shuffle descriptors; must
-     *     be greater than 0.
-     * @param consumedSubpartitionRange the range of consumed subpartitions.
-     * @return a {@link ConsumedSubpartitionContext} instance constructed from the input parameters.
      */
     public static ConsumedSubpartitionContext buildConsumedSubpartitionContext(
             int numConsumedShuffleDescriptors, IndexRange consumedSubpartitionRange) {
