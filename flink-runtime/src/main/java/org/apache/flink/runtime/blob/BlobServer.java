@@ -84,6 +84,41 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * This class implements the BLOB server. The BLOB server is responsible for listening for incoming
  * requests and spawning threads to handle these requests. Furthermore, it takes care of creating
  * the directory structure to store the BLOBs or temporarily cache them.
+ *
+ * <p>【学习型注释】BLOB（Binary Large Object）服务器，负责大文件的存储和分发。
+ *
+ * <h2>核心职责</h2>
+ * <ul>
+ *   <li>接收并存储 Job JAR 包、用户代码等大文件</li>
+ *   <li>为 TaskManager 提供文件下载服务</li>
+ *   <li>支持 HA 模式下的持久化存储（通过 BlobStore）</li>
+ *   <li>管理临时 BLOB（TransientBlob）的生命周期和清理</li>
+ * </ul>
+ *
+ * <h2>BLOB 类型</h2>
+ * <ul>
+ *   <li><b>PermanentBlob</b>：永久 BLOB，存储在 HA 存储（如 HDFS/S3）中，Job 级别持久化</li>
+ *   <li><b>TransientBlob</b>：临时 BLOB，仅存储在本地，有 TTL 过期清理机制</li>
+ * </ul>
+ *
+ * <h2>网络协议</h2>
+ * <ul>
+ *   <li>基于 TCP Socket 的自定义二进制协议</li>
+ *   <li>支持 GET（下载）和 PUT（上传）操作</li>
+ *   <li>支持 SSL/TLS 加密传输</li>
+ * </ul>
+ *
+ * <h2>存储结构</h2>
+ * <pre>
+ * storageDir/
+ * ├── incoming/              # 上传中的临时文件
+ * ├── no_job/                # Job 无关的 BLOB
+ * ├── job_{jobId}/           # Job 相关的 BLOB（按 JobID 组织）
+ * └── application_{appId}/   # Application 相关的 BLOB
+ * </pre>
+ *
+ * <h2>并发安全</h2>
+ * 使用 ReadWriteLock 保护文件操作，读操作可并发，写操作互斥。
  */
 public class BlobServer extends Thread
         implements BlobService,
@@ -97,50 +132,79 @@ public class BlobServer extends Thread
     /** The log object used for debugging. */
     private static final Logger LOG = LoggerFactory.getLogger(BlobServer.class);
 
-    /** Counter to generate unique names for temporary files. */
+    /**
+     * 临时文件计数器，用于生成唯一的临时文件名（temp-00000001、temp-00000002 等）。
+     */
     private final AtomicLong tempFileCounter = new AtomicLong(0);
 
-    /** The server socket listening for incoming connections. */
+    /**
+     * 服务端 Socket，监听客户端连接请求。
+     * 如果 BlobServer 在构造函数完成前关闭，可能为 null。
+     */
     // can be null if BlobServer is shut down before constructor completion
     @Nullable private final ServerSocket serverSocket;
 
-    /** Blob Server configuration. */
+    /**
+     * BLOB 服务配置，包含端口范围、SSL 配置、连接数限制等。
+     */
     private final Configuration blobServiceConfiguration;
 
-    /** Indicates whether a shutdown of server component has been requested. */
+    /**
+     * 关闭请求标志，使用 AtomicBoolean 保证线程安全的状态检查。
+     */
     private final AtomicBoolean shutdownRequested = new AtomicBoolean();
 
-    /** Root directory for local file storage. */
+    /**
+     * 本地存储根目录，所有 BLOB 文件都存储在此目录下。
+     * 使用 Reference 封装，支持所有权转移（owned 时负责清理）。
+     */
     private final Reference<File> storageDir;
 
-    /** Blob store for distributed file storage, e.g. in HA. */
+    /**
+     * 分布式 BLOB 存储，用于 HA 模式下的持久化。
+     * 可以是 HDFS、S3 或其他分布式文件系统的实现。
+     */
     private final BlobStore blobStore;
 
-    /** Set of currently running threads. */
+    /**
+     * 当前活跃的客户端连接集合。
+     * 每个连接由一个 BlobServerConnection 线程处理。
+     */
     private final Set<BlobServerConnection> activeConnections = new HashSet<>();
 
-    /** The maximum number of concurrent connections. */
+    /**
+     * 最大并发连接数，超过此限制的新连接需要等待。
+     */
     private final int maxConnections;
 
-    /** Lock guarding concurrent file accesses. */
+    /**
+     * 读写锁，保护文件操作的并发安全。
+     * 读操作（getFile）可以并发执行，写操作（putBuffer/delete）需要互斥。
+     */
     private final ReadWriteLock readWriteLock;
 
-    /** Shutdown hook thread to ensure deletion of the local storage directory. */
+    /**
+     * JVM 关闭钩子，确保 BlobServer 关闭时清理本地存储目录。
+     */
     private final Thread shutdownHook;
 
     // --------------------------------------------------------------------------------------------
 
     /**
-     * Map to store the TTL of each element stored in the local storage, i.e. via one of the {@link
-     * #getFile} methods.
+     * TransientBlob 的过期时间映射：(JobID, BlobKey) → 过期时间戳。
+     * 每次访问 TransientBlob 时更新其 TTL，过期后由清理任务删除。
      */
     private final ConcurrentHashMap<Tuple2<JobID, TransientBlobKey>, Long> blobExpiryTimes =
             new ConcurrentHashMap<>();
 
-    /** Time interval (ms) to run the cleanup task; also used as the default TTL. */
+    /**
+     * 清理任务的执行间隔（毫秒），同时也作为 TransientBlob 的默认 TTL。
+     */
     private final long cleanupInterval;
 
-    /** Timer task to execute the cleanup at regular intervals. */
+    /**
+     * 定时清理任务，周期性检查并删除过期的 TransientBlob。
+     */
     private final Timer cleanupTimer;
 
     @VisibleForTesting
@@ -328,6 +392,18 @@ public class BlobServer extends Thread
         return readWriteLock;
     }
 
+    /**
+     * BlobServer 的主循环，持续监听并处理客户端连接。
+     *
+     * <p>【学习型注释】连接处理流程：
+     * <ol>
+     *   <li>通过 serverSocket.accept() 阻塞等待新连接</li>
+     *   <li>检查当前活跃连接数是否达到上限，达到则等待</li>
+     *   <li>为新连接创建 BlobServerConnection 线程处理请求</li>
+     *   <li>连接完成后从 activeConnections 中移除</li>
+     * </ol>
+     * 当 shutdownRequested 为 true 或发生致命错误时退出循环。
+     */
     @Override
     public void run() {
         try {
@@ -521,6 +597,15 @@ public class BlobServer extends Thread
      * or a {@link FileNotFoundException} is thrown.
      *
      * <p><strong>Assumes the read lock has already been acquired.</strong>
+     *
+     * <p>【学习型注释】BLOB 获取流程：
+     * <ol>
+     *   <li>首先检查本地存储是否存在该文件</li>
+     *   <li>如果本地存在：对于 TransientBlob，更新 TTL 时间戳；直接返回文件</li>
+     *   <li>如果本地不存在且是 PermanentBlob：尝试从 HA 存储下载</li>
+     *   <li>下载时需要释放读锁、获取写锁，完成后重新获取读锁</li>
+     *   <li>如果文件不存在且无法从 HA 存储获取，抛出 FileNotFoundException</li>
+     * </ol>
      *
      * @param jobId ID of the job this blob belongs to (or <tt>null</tt> if job-unrelated)
      * @param blobKey blob key associated with the requested file
@@ -937,6 +1022,16 @@ public class BlobServer extends Thread
     /**
      * Moves the temporary <tt>incomingFile</tt> to its permanent location where it is available for
      * use.
+     *
+     * <p>【学习型注释】BLOB 上传存储流程：
+     * <ol>
+     *   <li>根据内容摘要（hash）生成 BlobKey</li>
+     *   <li>获取写锁，检查目标文件是否已存在（hash 冲突检测）</li>
+     *   <li>如果文件不存在：移动临时文件到目标位置</li>
+     *   <li>对于 PermanentBlob：同步上传到 HA 存储</li>
+     *   <li>对于 TransientBlob：记录 TTL 过期时间</li>
+     *   <li>如果 hash 冲突（文件已存在），重新生成 BlobKey 并重试（最多 10 次）</li>
+     * </ol>
      *
      * @param incomingFile temporary file created during transfer
      * @param jobId ID of the job this blob belongs to or <tt>null</tt> if job-unrelated

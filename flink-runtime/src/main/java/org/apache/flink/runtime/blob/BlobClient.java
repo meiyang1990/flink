@@ -62,16 +62,58 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * The BLOB client can communicate with the BLOB server and either upload (PUT), download (GET), or
  * delete (DELETE) BLOBs.
+ *
+ * <p>【学习型注释】BLOB 客户端，用于与 BlobServer 通信，执行文件的上传和下载操作。
+ *
+ * <h2>核心功能</h2>
+ * <ul>
+ *   <li><b>PUT</b>：上传 BLOB（字节数组、InputStream、文件）</li>
+ *   <li><b>GET</b>：下载 BLOB 到本地文件或 InputStream</li>
+ * </ul>
+ *
+ * <h2>使用场景</h2>
+ * <ul>
+ *   <li>JobManager 上传 Job JAR 包到 BlobServer</li>
+ *   <li>TaskManager 从 BlobServer 下载 Job JAR 包</li>
+ *   <li>Client 提交作业时上传用户代码</li>
+ * </ul>
+ *
+ * <h2>连接特性</h2>
+ * <ul>
+ *   <li>每个 BlobClient 实例对应一个 TCP 连接</li>
+ *   <li>支持 SSL/TLS 加密连接</li>
+ *   <li>连接超时和读取超时可配置</li>
+ *   <li>下载失败支持自动重试</li>
+ * </ul>
+ *
+ * <h2>典型用法</h2>
+ * <pre>{@code
+ * try (BlobClient client = new BlobClient(serverAddress, config)) {
+ *     PermanentBlobKey key = client.uploadFile(jobId, jarPath);
+ *     // 或者
+ *     InputStream is = client.getInternal(jobId, blobKey);
+ * }
+ * }</pre>
  */
 public final class BlobClient implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(BlobClient.class);
 
-    /** The socket connection to the BLOB server. */
+    /**
+     * 与 BlobServer 的 TCP Socket 连接。
+     * 支持普通 Socket 和 SSL Socket。
+     */
     private final Socket socket;
 
     /**
-     * Instantiates a new BLOB client.
+     * 创建 BlobClient 实例并建立与 BlobServer 的连接。
+     *
+     * <p>【学习型注释】连接建立流程：
+     * <ol>
+     *   <li>根据配置决定是否使用 SSL 连接</li>
+     *   <li>使用 getHostString() 而非 getHostName() 避免不必要的 DNS 查询</li>
+     *   <li>设置连接超时和读取超时</li>
+     * </ol>
      *
      * @param serverAddress the network address of the BLOB server
      * @param clientConfig additional configuration like SSL parameters required to connect to the
@@ -115,6 +157,14 @@ public final class BlobClient implements Closeable {
      *
      * <p>Transient BLOB files are deleted after a successful copy of the server's data into the
      * given <tt>localJarFile</tt>.
+     *
+     * <p>【学习型注释】带重试机制的 BLOB 下载方法。
+     * <ul>
+     *   <li>每次重试都会新建 BlobClient 连接</li>
+     *   <li>使用 try-with-resources 确保资源正确释放</li>
+     *   <li>下载数据通过 BUFFER_SIZE（8KB）缓冲区逐块写入本地文件</li>
+     *   <li>重试次数用完后抛出 IOException</li>
+     * </ul>
      *
      * @param jobId job ID the BLOB belongs to or <tt>null</tt> if job-unrelated
      * @param blobKey BLOB key
@@ -276,6 +326,14 @@ public final class BlobClient implements Closeable {
     /**
      * Downloads the BLOB identified by the given BLOB key from the BLOB server.
      *
+     * <p>【学习型注释】GET 操作的协议流程：
+     * <ol>
+     *   <li>发送 GET 请求头：操作类型 + JobID/ApplicationID + BlobKey</li>
+     *   <li>接收并校验响应：RETURN_OKAY 表示成功，RETURN_ERROR 表示失败</li>
+     *   <li>返回 BlobInputStream 供调用方读取数据</li>
+     * </ol>
+     * 如果发生异常，会自动关闭 Socket 连接。
+     *
      * @param jobId ID of the job this blob belongs to (or <tt>null</tt> if job-unrelated)
      * @param blobKey blob key associated with the requested file
      * @return an input stream to read the retrieved data from
@@ -426,6 +484,15 @@ public final class BlobClient implements Closeable {
     /**
      * Uploads data from the given byte buffer to the BLOB server.
      *
+     * <p>【学习型注释】PUT 操作的协议流程：
+     * <ol>
+     *   <li>创建 BlobOutputStream 封装上传逻辑</li>
+     *   <li>发送 PUT 请求头：操作类型 + JobID + BlobType</li>
+     *   <li>分块发送数据（每块 BUFFER_SIZE 字节）</li>
+     *   <li>发送结束标记并接收服务端返回的 BlobKey</li>
+     *   <li>校验本地计算的 hash 与服务端返回的是否一致</li>
+     * </ol>
+     *
      * @param jobId the ID of the job the BLOB belongs to (or <tt>null</tt> if job-unrelated)
      * @param value the buffer to read the data from
      * @param offset the read offset within the buffer
@@ -500,6 +567,13 @@ public final class BlobClient implements Closeable {
     /**
      * Uploads the JAR files to the {@link PermanentBlobService} of the {@link BlobServer} at the
      * given address with HA as configured.
+     *
+     * <p>【学习型注释】批量上传 JAR 文件的便捷方法。
+     * <ul>
+     *   <li>复用同一个 BlobClient 连接上传多个文件</li>
+     *   <li>返回每个文件对应的 PermanentBlobKey 列表</li>
+     *   <li>常用于提交作业时上传依赖 JAR</li>
+     * </ul>
      *
      * @param serverAddress Server address of the {@link BlobServer}
      * @param clientConfig Any additional configuration for the blob client
