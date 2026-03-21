@@ -53,10 +53,26 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * Channel handler to read the messages of buffer response or error response from the producer, to
- * write and flush the unannounced credits for the producer.
+ * 【学习笔记】CreditBasedPartitionRequestClientHandler - 基于 Credit 的客户端消息处理器
  *
- * <p>It is used in the new network credit-based mode.
+ * <p>核心职责：
+ * 1. 处理来自上游 TaskManager 的数据响应（BufferResponse）和错误响应（ErrorResponse）
+ * 2. 向上游发送 Credit 通告和消费恢复请求，实现 Credit-based 流量控制
+ * 3. 管理本地 RemoteInputChannel 的注册和消息分发
+ *
+ * <p>Credit-based 流量控制机制：
+ * - 下游通过 AddCredit 消息告知上游可用的缓冲区数量
+ * - 上游只在有足够 Credit 时才发送数据，避免下游内存溢出
+ * - 这种机制替代了传统的 TCP 背压，提供更细粒度的流量控制
+ *
+ * <p>消息处理：
+ * - BufferResponse：接收数据缓冲区，分发到对应的 RemoteInputChannel
+ * - ErrorResponse：处理错误，区分致命错误（关闭所有 Channel）和非致命错误（仅影响单个 Channel）
+ * - BacklogAnnouncement：接收积压通告，触发缓冲区申请
+ *
+ * <p>线程安全：
+ * - inputChannels 使用 ConcurrentHashMap 保证线程安全
+ * - channelError 使用 AtomicReference 保证错误状态的原子性更新
  */
 class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdapter
         implements NetworkClientHandler {
@@ -64,35 +80,34 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
     private static final Logger LOG =
             LoggerFactory.getLogger(CreditBasedPartitionRequestClientHandler.class);
 
-    /** Channels, which already requested partitions from the producers. */
+    // 已注册的输入通道，key 为 InputChannelID
     private final ConcurrentMap<InputChannelID, RemoteInputChannel> inputChannels =
             new ConcurrentHashMap<>();
 
-    /** Messages to be sent to the producers (credit announcement or resume consumption request). */
+    // 待发送的出站消息队列（Credit 通告或恢复消费请求）
     private final ArrayDeque<ClientOutboundMessage> clientOutboundMessages = new ArrayDeque<>();
 
+    // 通道级错误状态，一旦设置则拒绝所有后续操作
     private final AtomicReference<Throwable> channelError = new AtomicReference<>();
 
+    // 写入完成后的回调监听器
     private final ChannelFutureListener writeListener =
             new WriteAndFlushNextMessageIfPossibleListener();
 
-    /**
-     * The channel handler context is initialized in channel active event by netty thread, the
-     * context may also be accessed by task thread or canceler thread to cancel partition request
-     * during releasing resources.
-     */
+    // Netty Channel 上下文，由 Netty 线程初始化
     private volatile ChannelHandlerContext ctx;
 
+    // 连接标识
     private ConnectionID connectionID;
 
     // ------------------------------------------------------------------------
-    // Input channel/receiver registration
+    // 输入通道注册管理
     // ------------------------------------------------------------------------
 
+    // 注册输入通道，建立 ChannelID 到 RemoteInputChannel 的映射
     @Override
     public void addInputChannel(RemoteInputChannel listener) throws IOException {
         checkError();
-
         inputChannels.putIfAbsent(listener.getInputChannelId(), listener);
     }
 
@@ -106,17 +121,17 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         return inputChannels.get(inputChannelId);
     }
 
+    // 向服务端发送取消分区请求
     @Override
     public void cancelRequestFor(InputChannelID inputChannelId) {
         if (inputChannelId == null || ctx == null) {
             return;
         }
-
         ctx.writeAndFlush(new NettyMessage.CancelPartitionRequest(inputChannelId));
     }
 
     // ------------------------------------------------------------------------
-    // Network events
+    // 网络事件处理
     // ------------------------------------------------------------------------
 
     @Override
@@ -124,10 +139,10 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         if (this.ctx == null) {
             this.ctx = ctx;
         }
-
         super.channelActive(ctx);
     }
 
+    // 连接断开时通知所有通道并关闭
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         final SocketAddress remoteAddr = ctx.channel().remoteAddress();
@@ -146,11 +161,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         super.channelInactive(ctx);
     }
 
-    /**
-     * Called on exceptions in the client handler pipeline.
-     *
-     * <p>Remote exceptions are received as regular payload.
-     */
+    // 异常处理：区分传输异常和连接重置
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         if (cause instanceof TransportException) {
@@ -160,7 +171,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
             final TransportException tex;
 
-            // Improve on the connection reset by peer error message
+            // 优化 "Connection reset by peer" 的错误提示
             if (cause.getMessage() != null
                     && cause.getMessage().contains("Connection reset by peer")) {
                 tex =
@@ -191,6 +202,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         }
     }
 
+    // 读取消息入口
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
@@ -200,12 +212,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         }
     }
 
-    /**
-     * Triggered by notifying credit available in the client handler pipeline.
-     *
-     * <p>Enqueues the input channel and will trigger write&flush unannounced credits for this input
-     * channel if it is the first one in the queue.
-     */
+    // 用户事件触发：处理 Credit 通告和连接错误
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ClientOutboundMessage) {
@@ -213,6 +220,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
             clientOutboundMessages.add((ClientOutboundMessage) msg);
 
+            // 队列为空时触发写入
             if (triggerWrite) {
                 writeAndFlushNextMessageIfPossible(ctx.channel());
             }
@@ -262,34 +270,23 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
     }
 
     // ------------------------------------------------------------------------
+    // 消息解码与分发
+    // ------------------------------------------------------------------------
 
-    /** Checks for an error and rethrows it if one was reported. */
-    @VisibleForTesting
-    void checkError() throws IOException {
-        final Throwable t = channelError.get();
-
-        if (t != null) {
-            if (t instanceof IOException) {
-                throw (IOException) t;
-            } else {
-                throw new IOException("There has been an error in the channel.", t);
-            }
-        }
-    }
-
+    // 解码并分发来自服务端的消息
     private void decodeMsg(Object msg) {
         final Class<?> msgClazz = msg.getClass();
 
-        // ---- Buffer --------------------------------------------------------
+        // ---- 数据缓冲区响应 --------------------------------------------------------
         if (msgClazz == NettyMessage.BufferResponse.class) {
             NettyMessage.BufferResponse bufferOrEvent = (NettyMessage.BufferResponse) msg;
 
+            // 查找对应的输入通道
             RemoteInputChannel inputChannel = inputChannels.get(bufferOrEvent.receiverId);
             if (inputChannel == null || inputChannel.isReleased()) {
+                // 通道已释放，回收缓冲区并取消请求
                 bufferOrEvent.releaseBuffer();
-
                 cancelRequestFor(bufferOrEvent.receiverId);
-
                 return;
             }
 
@@ -300,12 +297,13 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
             }
 
         } else if (msgClazz == NettyMessage.ErrorResponse.class) {
-            // ---- Error ---------------------------------------------------------
+            // ---- 错误响应 ---------------------------------------------------------
             NettyMessage.ErrorResponse error = (NettyMessage.ErrorResponse) msg;
 
             SocketAddress remoteAddr = ctx.channel().remoteAddress();
 
             if (error.isFatalError()) {
+                // 致命错误：关闭所有通道
                 notifyAllChannelsOfErrorAndClose(
                         new RemoteTransportException(
                                 "Fatal error at remote task manager '"
@@ -317,6 +315,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
                                 remoteAddr,
                                 error.cause));
             } else {
+                // 非致命错误：仅影响单个通道
                 RemoteInputChannel inputChannel = inputChannels.get(error.receiverId);
 
                 if (inputChannel != null) {
@@ -339,6 +338,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
                 }
             }
         } else if (msgClazz == NettyMessage.BacklogAnnouncement.class) {
+            // ---- 积压通告：触发下游申请更多缓冲区 ------------------------------------
             NettyMessage.BacklogAnnouncement announcement = (NettyMessage.BacklogAnnouncement) msg;
 
             RemoteInputChannel inputChannel = inputChannels.get(announcement.receiverId);
