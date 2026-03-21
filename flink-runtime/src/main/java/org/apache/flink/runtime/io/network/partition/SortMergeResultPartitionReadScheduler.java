@@ -59,6 +59,49 @@ import static org.apache.flink.util.Preconditions.checkState;
  * consuming the corresponding {@link SortMergeResultPartition}. It always tries to read shuffle
  * data in order of file offset, which maximums the sequential read so can improve the blocking
  * shuffle performance.
+ *
+ * <p>Sort-Merge Shuffle 的数据读取调度器，负责协调多个下游消费者的读取请求。
+ *
+ * <h2>核心设计特点</h2>
+ * <ul>
+ *   <li><b>顺序 I/O 优化</b>：使用优先队列按文件偏移量排序 Reader，最大化顺序读取，提升磁盘性能</li>
+ *   <li><b>共享文件通道</b>：多个 SubpartitionReader 共享同一对数据/索引文件通道，减少文件描述符占用</li>
+ *   <li><b>Buffer 配额控制</b>：通过 BufferPool 限制每个 Partition 的 Buffer 占用，防止内存过度使用</li>
+ *   <li><b>异步读取</b>：读取任务在独立的 IO 线程池中执行，不阻塞主线程</li>
+ * </ul>
+ *
+ * <h2>调度流程</h2>
+ * <pre>
+ * 1. 下游 Task 请求数据 → createSubpartitionReader()
+ *    ├── 打开文件通道（首个 Reader）
+ *    ├── 创建 PartitionedFileReader
+ *    ├── 注册到 allReaders 和 sortedReaders
+ *    └── 触发读取调度 mayTriggerReading()
+ *
+ * 2. 读取调度 run()
+ *    ├── allocateBuffers() 从 BufferPool 申请内存
+ *    ├── 按文件偏移顺序遍历 sortedReaders
+ *    │   └── reader.readBuffers() 读取数据
+ *    ├── 处理完成/失败的 Reader
+ *    └── 回收未使用的 Buffer
+ *
+ * 3. Buffer 回收 recycle()
+ *    └── 触发新的读取调度 mayTriggerReading()
+ * </pre>
+ *
+ * <h2>死锁预防</h2>
+ * <p>当下游 Task 需要按特定顺序消费多个 ResultPartition（如 A 必须在 B 之前完成）时，
+ * 如果 B 占用了所有 Buffer，A 无法读取，B 也无法释放 Buffer，造成死锁。
+ * 解决方案：通过 {@link #bufferRequestTimeout} 超时检测，超时后 fail 掉所有 Reader，
+ * 触发 Task 重启重试。
+ *
+ * <h2>线程安全</h2>
+ * <p>使用 {@link #lock} 保护所有共享状态，包括：
+ * <ul>
+ *   <li>allReaders / sortedReaders / failedReaders</li>
+ *   <li>dataFileChannel / indexFileChannel</li>
+ *   <li>isRunning / numRequestedBuffers / isReleased</li>
+ * </ul>
  */
 class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler {
 
@@ -68,76 +111,94 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
     /**
      * Default maximum time (5min) to wait when requesting read buffers from the buffer pool before
      * throwing an exception.
+     *
+     * <p>Buffer 请求超时时间（默认 5 分钟），用于死锁检测
      */
     private static final Duration DEFAULT_BUFFER_REQUEST_TIMEOUT = Duration.ofMinutes(5);
 
-    /** Used to read buffer headers from file channel. */
+    /** 用于读取 Buffer 头部信息的复用缓冲区 */
     private final ByteBuffer headerBuf = BufferReaderWriterUtil.allocatedHeaderBuffer();
 
-    /** Used to read index entry for file reader initializing. */
+    /** 用于初始化 FileReader 时读取索引的缓冲区 */
     private final ByteBuffer indexEntryBufferInit =
             ByteBuffer.allocateDirect(PartitionedFile.INDEX_ENTRY_SIZE);
 
-    /** Used to read index entry for file reader reading data. */
+    /** 用于读取数据时读取索引的缓冲区 */
     private final ByteBuffer indexEntryBufferRead =
             ByteBuffer.allocateDirect(PartitionedFile.INDEX_ENTRY_SIZE);
 
-    /** Lock used to synchronize multi-thread access to thread-unsafe fields. */
+    /** 同步锁，保护所有线程不安全的字段 */
     private final Object lock;
 
     /**
      * A {@link CompletableFuture} to be completed when this read scheduler including all resources
      * is released.
+     *
+     * <p>释放完成 Future，当所有资源释放完毕后完成，用于外部等待释放
      */
     private final CompletableFuture<?> releaseFuture = new CompletableFuture<>();
 
-    /** Buffer pool from which to allocate buffers for shuffle data reading. */
+    /** 用于分配读取 Buffer 的缓冲池 */
     private final BatchShuffleReadBufferPool bufferPool;
 
-    /** Executor to run the shuffle data reading task. */
+    /** 执行读取任务的 IO 线程池 */
     private final Executor ioExecutor;
 
     /**
      * Maximum time to wait when requesting read buffers from the buffer pool before throwing an
      * exception.
+     *
+     * <p>Buffer 请求超时时间，超时后会 fail 所有 Reader（死锁保护）
      */
     private final Duration bufferRequestTimeout;
 
-    /** All failed subpartition readers to be released. */
+    /** 所有失败待释放的 Reader 集合 */
     @GuardedBy("lock")
     private final Set<SortMergeSubpartitionReader> failedReaders = new HashSet<>();
 
-    /** All readers waiting to read data of different subpartitions. */
+    /**
+     * All readers waiting to read data of different subpartitions.
+     *
+     * <p>所有注册的 Reader 集合，包括正在读取和等待读取的
+     */
     @GuardedBy("lock")
     private final Set<SortMergeSubpartitionReader> allReaders = new HashSet<>();
 
     /**
      * All readers to be read in order. This queue sorts all readers by file offset to achieve
      * better sequential IO.
+     *
+     * <p>按文件偏移量排序的 Reader 优先队列，实现顺序 I/O 优化
      */
     @GuardedBy("lock")
     private final Queue<SortMergeSubpartitionReader> sortedReaders = new PriorityQueue<>();
 
-    /** File channel shared by all subpartitions to read data from. */
+    /** 数据文件通道，由所有 Reader 共享 */
     @GuardedBy("lock")
     private FileChannel dataFileChannel;
 
-    /** File channel shared by all subpartitions to read index from. */
+    /** 索引文件通道，由所有 Reader 共享 */
     @GuardedBy("lock")
     private FileChannel indexFileChannel;
 
     /**
      * Whether the data reading task is currently running or not. This flag is used when trying to
      * submit the data reading task.
+     *
+     * <p>读取任务运行状态标记，防止重复提交读取任务
      */
     @GuardedBy("lock")
     private boolean isRunning;
 
-    /** Number of buffers already allocated and still not recycled by this partition reader. */
+    /**
+     * Number of buffers already allocated and still not recycled by this partition reader.
+     *
+     * <p>当前已分配但未回收的 Buffer 数量，用于流量控制
+     */
     @GuardedBy("lock")
     private volatile int numRequestedBuffers;
 
-    /** Whether this reader has been released or not. */
+    /** 标记调度器是否已释放 */
     @GuardedBy("lock")
     private volatile boolean isReleased;
 
@@ -160,6 +221,15 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
         BufferReaderWriterUtil.configureByteBuffer(indexEntryBufferRead);
     }
 
+    /**
+     * 读取调度主循环。核心逻辑：
+     * <ol>
+     *   <li>从 BufferPool 申请内存</li>
+     *   <li>按文件偏移顺序遍历 Reader，依次读取数据</li>
+     *   <li>处理完成和失败的 Reader</li>
+     *   <li>回收未使用的 Buffer</li>
+     * </ol>
+     */
     @Override
     public synchronized void run() {
         Set<SortMergeSubpartitionReader> finishedReaders = new HashSet<>();
@@ -167,7 +237,7 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
         try {
             buffers = allocateBuffers();
         } catch (Throwable throwable) {
-            // fail all pending subpartition readers immediately if any exception occurs
+            // 申请 Buffer 失败，fail 所有 Reader
             LOG.error("Failed to request buffers for data reading.", throwable);
             failSubpartitionReaders(getAllReaders(), throwable);
             removeFinishedAndFailedReaders(0, finishedReaders);
@@ -176,39 +246,57 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
         checkState(!buffers.isEmpty(), "No buffer available.");
         int numBuffersAllocated = buffers.size();
 
+        // 遍历 Reader 读取数据
         ArrayList<SortMergeSubpartitionReader> unfinishedReaders = new ArrayList<>();
         SortMergeSubpartitionReader subpartitionReader = getNextReader();
         while (subpartitionReader != null) {
             try {
                 if (!subpartitionReader.readBuffers(buffers, this)) {
-                    // there is no resource to release for finished readers currently
+                    // Reader 读取完成
                     finishedReaders.add(subpartitionReader);
                 } else {
+                    // Reader 未完成，稍后继续
                     unfinishedReaders.add(subpartitionReader);
                 }
             } catch (Throwable throwable) {
+                // 读取失败，标记为失败
                 failSubpartitionReaders(Collections.singletonList(subpartitionReader), throwable);
                 LOG.debug("Failed to read shuffle data.", throwable);
             }
 
+            // Buffer 用完，停止本轮读取
             if (buffers.isEmpty()) {
                 break;
             }
 
+            // 获取下一个 Reader
             subpartitionReader = getNextReader();
             if (subpartitionReader == null && !unfinishedReaders.isEmpty()) {
+                // 所有 Reader 都处理过一轮，将未完成的放回队列继续
                 returnUnfinishedReaders(unfinishedReaders);
                 subpartitionReader = getNextReader();
             }
         }
 
+        // 回收未使用的 Buffer
         int numBuffersRead = numBuffersAllocated - buffers.size();
         releaseBuffers(buffers);
 
+        // 返回未完成的 Reader，清理完成/失败的 Reader
         returnUnfinishedReaders(unfinishedReaders);
         removeFinishedAndFailedReaders(numBuffersRead, finishedReaders);
     }
 
+    /**
+     * 从 BufferPool 申请内存。
+     *
+     * <p>该方法会循环尝试直到成功获取 Buffer 或超时。超时机制用于防止死锁：
+     * 当多个 ResultPartition 需要按特定顺序消费时，如果后消费的 Partition 占用了
+     * 所有 Buffer，先消费的 Partition 无法读取，造成死锁。
+     *
+     * @return 申请到的 Buffer 队列
+     * @throws TimeoutException 超时异常，建议增加 batch-shuffle-read.memory 配置
+     */
     @VisibleForTesting
     Queue<MemorySegment> allocateBuffers() throws Exception {
         long timeoutTime = getBufferRequestTimeoutTime();
@@ -217,23 +305,13 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
             if (!buffers.isEmpty()) {
                 return new ArrayDeque<>(buffers);
             }
-            // only visibility requirements here.
+            // 检查是否已释放
             // noinspection FieldAccessNotGuarded
             checkState(!isReleased, "Result partition has been already released.");
         } while (System.currentTimeMillis() < timeoutTime
                 || System.currentTimeMillis() < (timeoutTime = getBufferRequestTimeoutTime()));
 
-        // This is a safe net against potential deadlocks.
-        //
-        // A deadlock can happen when the downstream task needs to consume multiple result
-        // partitions (e.g., A and B) in specific order (cannot consume B before finishing
-        // consuming A). Since the reading buffer pool is shared across the TM, if B happens to
-        // take all the buffers, A cannot be consumed due to lack of buffers, which also blocks
-        // B from being consumed and releasing the buffers.
-        //
-        // The imperfect solution here is to fail all the subpartitionReaders (A), which
-        // consequently fail all the downstream tasks, unregister their other
-        // subpartitionReaders (B) and release the read buffers.
+        // 超时，抛出异常（死锁保护）
         throw new TimeoutException(
                 String.format(
                         "Buffer request timeout, this means there is a fierce contention of"
@@ -330,6 +408,7 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
         }
     }
 
+    /** 将未完成的 Reader 放回排序队列 */
     private void returnUnfinishedReaders(ArrayList<SortMergeSubpartitionReader> readers) {
         if (readers != null && !readers.isEmpty()) {
             synchronized (lock) {
@@ -339,6 +418,22 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
         }
     }
 
+    /**
+     * 创建子分区读取器。
+     *
+     * <p>核心流程：
+     * <ol>
+     *   <li>如果是第一个 Reader，打开文件通道</li>
+     *   <li>创建 PartitionedFileReader 并初始化 Region 索引</li>
+     *   <li>注册到 allReaders 和 sortedReaders</li>
+     *   <li>触发读取调度</li>
+     * </ol>
+     *
+     * @param availabilityListener 数据可用性监听器，用于通知下游有数据可读
+     * @param indexSet 要读取的子分区索引集合
+     * @param resultFile 分区文件
+     * @param subpartitionOrderRotationIndex 子分区写入顺序旋转索引
+     */
     SortMergeSubpartitionReader createSubpartitionReader(
             BufferAvailabilityListener availabilityListener,
             ResultSubpartitionIndexSet indexSet,
@@ -347,20 +442,25 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
             throws IOException {
         synchronized (lock) {
             checkState(!isReleased, "Partition is already released.");
+            // 创建文件读取器
             PartitionedFileReader fileReader =
                     createFileReader(resultFile, indexSet, subpartitionOrderRotationIndex);
             SortMergeSubpartitionReader subpartitionReader =
                     new SortMergeSubpartitionReader(
                             bufferPool.getBufferSize(), availabilityListener, fileReader);
+            // 首个 Reader 注册到 BufferPool
             if (allReaders.isEmpty()) {
                 bufferPool.registerRequester(this);
             }
+            // 注册 Reader
             allReaders.add(subpartitionReader);
             sortedReaders.add(subpartitionReader);
+            // 监听 Reader 释放，以便清理
             subpartitionReader
                     .getReleaseFuture()
                     .thenRun(() -> releaseSubpartitionReader(subpartitionReader));
 
+            // 触发读取调度
             mayTriggerReading();
             return subpartitionReader;
         }
@@ -423,38 +523,57 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
         indexFileChannel = null;
     }
 
+    /**
+     * Buffer 回收回调，由 BufferRecycler 接口定义。
+     *
+     * <p>当读取的数据被下游消费完成后，Buffer 会被回收，触发新的读取调度
+     */
     @Override
     public void recycle(MemorySegment segment) {
         synchronized (lock) {
             bufferPool.recycle(segment);
             --numRequestedBuffers;
 
+            // Buffer 回收后可能可以触发新的读取
             mayTriggerReading();
         }
     }
 
+    /**
+     * 尝试触发读取任务。
+     *
+     * <p>触发条件：
+     * <ul>
+     *   <li>当前没有正在运行的读取任务</li>
+     *   <li>有等待读取的 Reader</li>
+     *   <li>已分配的 Buffer 数量未超过上限</li>
+     *   <li>当前 Partition 分配的 Buffer 数量低于平均值</li>
+     * </ul>
+     *
+     * <p>Buffer 配额控制策略：每个 Partition 最多使用 max(16MB, 2 * numReaders) 个 Buffer，
+     * 较大的并行度允许使用更多 Buffer
+     */
     @GuardedBy("lock")
     private void mayTriggerReading() {
         assert Thread.holdsLock(lock);
 
-        // one partition reader can consume at most Math.max(16M, 2 * numReaders) (the expected
-        // buffers per request is 4M) buffers for data read, which means larger parallelism, more
-        // buffers. Currently, it is only an empirical strategy which can not be configured.
+        // 计算最大可分配 Buffer 数（经验值：较大并行度允许更多 Buffer）
         int maxRequestedBuffers =
                 Math.max(4 * bufferPool.getNumBuffersPerRequest(), 2 * allReaders.size());
 
+        // 检查触发条件
         if (!isRunning
                 && !allReaders.isEmpty()
                 && numRequestedBuffers + bufferPool.getNumBuffersPerRequest() <= maxRequestedBuffers
                 && numRequestedBuffers < bufferPool.getAverageBuffersPerRequester()) {
             isRunning = true;
+            // 提交读取任务到 IO 线程池
             ioExecutor.execute(
                     () -> {
                         try {
                             run();
                         } catch (Throwable throwable) {
-                            // handle un-expected exception as unhandledExceptionHandler is not
-                            // worked for ScheduledExecutorService.
+                            // 处理未预期的异常
                             FatalExitExceptionHandler.INSTANCE.uncaughtException(
                                     Thread.currentThread(), throwable);
                         }
@@ -465,6 +584,8 @@ class SortMergeResultPartitionReadScheduler implements Runnable, BufferRecycler 
     /**
      * Releases this read scheduler and returns a {@link CompletableFuture} which will be completed
      * when all resources are released.
+     *
+     * <p>释放调度器并返回完成 Future。释放后所有 Reader 会收到 IllegalStateException
      */
     CompletableFuture<?> release() {
         List<SortMergeSubpartitionReader> pendingReaders;
