@@ -66,56 +66,127 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <p>Explicit calls to {@link #flush()} will force this {@link
  * PipelinedSubpartitionView#notifyDataAvailable() notification} for any {@link BufferConsumer}
  * present in the queue.
+ *
+ * <p>【学习笔记】PipelinedSubpartition 是 Flink 流处理的核心数据传输组件。
+ *
+ * <h3>一、核心特性</h3>
+ * <ul>
+ *   <li><b>流水线传输</b>：数据生产后立即可被消费，无需等待全部数据写完</li>
+ *   <li><b>纯内存</b>：数据只存储在内存中，不落盘（除非背压严重导致溢出）</li>
+ *   <li><b>单次消费</b>：每个子分区只能被一个下游 Task 消费一次</li>
+ * </ul>
+ *
+ * <h3>二、数据通知机制</h3>
+ * <p>采用"懒通知"策略以减少通知开销：
+ * <ol>
+ *   <li>只在第一个完成的 Buffer 到达时通知下游</li>
+ *   <li>下游收到通知后，持续拉取直到队列为空</li>
+ *   <li>显式调用 flush() 可强制触发通知</li>
+ * </ol>
+ *
+ * <h3>三、与 Checkpoint 的交互</h3>
+ * <ul>
+ *   <li><b>优先级事件</b>：CheckpointBarrier 可以作为优先级事件插队到队首</li>
+ *   <li><b>对齐超时</b>：对齐检查点超时后，转为非对齐检查点并记录 in-flight 数据</li>
+ *   <li><b>阻塞/恢复</b>：Exactly-Once 语义下会暂停消费直到 Barrier 对齐</li>
+ * </ul>
+ *
+ * <h3>四、背压机制</h3>
+ * <ul>
+ *   <li>通过 buffersInBacklog 反馈积压量</li>
+ *   <li>下游基于 backlog 申请 Credit</li>
+ *   <li>isBlocked 状态控制消费暂停/恢复</li>
+ * </ul>
  */
 public class PipelinedSubpartition extends ResultSubpartition implements ChannelStateHolder {
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedSubpartition.class);
 
+    // 默认优先级序列号，表示非优先级事件
     private static final int DEFAULT_PRIORITY_SEQUENCE_NUMBER = -1;
 
     // ------------------------------------------------------------------------
 
-    /** Number of exclusive credits per input channel at the downstream tasks. */
+    /**
+     * Number of exclusive credits per input channel at the downstream tasks.
+     * 下游每个输入通道的独占 Credit 数量。
+     * Credit-based 流控机制：下游持有 Credit 才能接收数据，0 表示无独占 Credit，
+     * 此时下游完全依赖浮动 Credit，可能导致空 Buffer 也需要传输以释放 Credit。
+     */
     private final int receiverExclusiveBuffersPerChannel;
 
-    /** All buffers of this subpartition. Access to the buffers is synchronized on this object. */
+    /**
+     * All buffers of this subpartition. Access to the buffers is synchronized on this object.
+     * 子分区的所有 Buffer 队列，使用优先级双端队列实现。
+     * PrioritizedDeque 支持普通元素和优先级元素，优先级元素（如 CheckpointBarrier）可以插队到队首。
+     */
     final PrioritizedDeque<BufferConsumerWithPartialRecordLength> buffers =
             new PrioritizedDeque<>();
 
-    /** The number of non-event buffers currently in this subpartition. */
+    /**
+     * The number of non-event buffers currently in this subpartition.
+     * 当前子分区中非事件 Buffer 的数量（即数据 Buffer）。
+     * 这是 backlog 的核心指标，下游据此申请 Credit。
+     */
     @GuardedBy("buffers")
     private int buffersInBacklog;
 
-    /** The read view to consume this subpartition. */
+    /**
+     * The read view to consume this subpartition.
+     * 消费此子分区的读视图，每个子分区只能有一个读视图（单次消费语义）。
+     */
     PipelinedSubpartitionView readView;
 
-    /** Flag indicating whether the subpartition has been finished. */
+    /**
+     * Flag indicating whether the subpartition has been finished.
+     * 子分区是否已完成（上游 Task 写完所有数据）。
+     */
     private boolean isFinished;
 
+    /**
+     * 是否有 flush 请求。flush 会强制通知下游数据可用，即使 Buffer 未完成。
+     */
     @GuardedBy("buffers")
     private boolean flushRequested;
 
-    /** Flag indicating whether the subpartition has been released. */
+    /**
+     * Flag indicating whether the subpartition has been released.
+     * 子分区是否已释放。volatile 保证多线程可见性。
+     */
     volatile boolean isReleased;
 
-    /** The total number of buffers (both data and event buffers). */
+    /**
+     * The total number of buffers (both data and event buffers).
+     * 总 Buffer 数量（数据 + 事件），用于统计监控。
+     */
     private long totalNumberOfBuffers;
 
-    /** The total number of bytes (both data and event buffers). */
+    /**
+     * The total number of bytes (both data and event buffers).
+     * 总字节数，用于统计监控。
+     */
     private long totalNumberOfBytes;
 
-    /** Writes in-flight data. */
+    /**
+     * Writes in-flight data.
+     * 用于写入 in-flight 数据的通道状态写入器，支持 Unaligned Checkpoint。
+     */
     private ChannelStateWriter channelStateWriter;
 
+    // 动态调整的 Buffer 大小
     private int bufferSize;
 
-    /** The channelState Future of unaligned checkpoint. */
+    /**
+     * The channelState Future of unaligned checkpoint.
+     * 非对齐检查点的通道状态 Future，用于异步收集 in-flight 数据。
+     */
     @GuardedBy("buffers")
     private CompletableFuture<List<Buffer>> channelStateFuture;
 
     /**
      * It is the checkpointId corresponding to channelStateFuture. And It should be always update
      * with {@link #channelStateFuture}.
+     * 与 channelStateFuture 对应的检查点 ID，两者必须同步更新。
      */
     @GuardedBy("buffers")
     private long channelStateCheckpointId;
@@ -123,10 +194,13 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
     /**
      * Whether this subpartition is blocked (e.g. by exactly once checkpoint) and is waiting for
      * resumption.
+     * 子分区是否被阻塞（如 Exactly-Once 检查点对齐期间）。
+     * 阻塞时下游无法消费数据，直到 Barrier 对齐后调用 resumeConsumption()。
      */
     @GuardedBy("buffers")
     boolean isBlocked = false;
 
+    // 当前序列号，每发送一个 BufferAndBacklog 递增，用于保证数据顺序
     int sequenceNumber = 0;
 
     // ------------------------------------------------------------------------
@@ -314,14 +388,18 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
 
     @Override
     public void alignedBarrierTimeout(long checkpointId) throws IOException {
+        // 对齐检查点超时处理：将对齐检查点转换为非对齐检查点
+        // 这是 Flink 1.11+ 引入的 Timeoutable Aligned Checkpoint 特性
         int prioritySequenceNumber = DEFAULT_PRIORITY_SEQUENCE_NUMBER;
         synchronized (buffers) {
             // The checkpoint barrier has sent to downstream, so nothing to do.
+            // 如果 Barrier 已经发送到下游，则无需处理
             if (!isChannelStateFutureAvailable(checkpointId)) {
                 return;
             }
 
             // 1. find inflightBuffers and timeout the aligned barrier to unaligned barrier
+            // 收集 Barrier 之前的 in-flight 数据，并将对齐 Barrier 转为非对齐 Barrier
             List<Buffer> inflightBuffers = new ArrayList<>();
             try {
                 if (findInflightBuffersAndMakeBarrierToPriority(checkpointId, inflightBuffers)) {
@@ -334,11 +412,13 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
             }
 
             // 2. complete the channelStateFuture
+            // 完成通道状态 Future，将 in-flight 数据传递给检查点协调器
             completeChannelStateFuture(inflightBuffers, null);
         }
 
         // 3. notify downstream read barrier, it must be called outside the buffers_lock to avoid
         // the deadlock.
+        // 通知下游读取 Barrier，必须在锁外调用以避免死锁
         notifyPriorityEvent(prioritySequenceNumber);
     }
 
@@ -453,9 +533,24 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
         }
     }
 
+    /**
+     * 从子分区中拉取一个 Buffer。
+     *
+     * <p>【核心流程】：
+     * <ol>
+     *   <li>检查是否被阻塞（Exactly-Once 检查点对齐期间）</li>
+     *   <li>从队列中获取 Buffer 并构建 slice</li>
+     *   <li>处理 Timeoutable Checkpoint Barrier</li>
+     *   <li>更新统计信息和序列号</li>
+     *   <li>如果遇到阻塞上游的数据类型，设置 isBlocked=true</li>
+     * </ol>
+     *
+     * @return BufferAndBacklog 包含数据、积压量和下一个数据类型，返回 null 表示无数据可读
+     */
     @Nullable
     BufferAndBacklog pollBuffer() {
         synchronized (buffers) {
+            // 如果被阻塞（如 Exactly-Once 检查点对齐），不返回任何数据
             if (isBlocked) {
                 return null;
             }
@@ -466,11 +561,13 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
                 flushRequested = false;
             }
 
+            // 循环处理队列中的 Buffer
             while (!buffers.isEmpty()) {
                 BufferConsumerWithPartialRecordLength bufferConsumerWithPartialRecordLength =
                         buffers.peek();
                 BufferConsumer bufferConsumer =
                         bufferConsumerWithPartialRecordLength.getBufferConsumer();
+                // 处理可超时的对齐检查点 Barrier
                 if (Buffer.DataType.TIMEOUTABLE_ALIGNED_CHECKPOINT_BARRIER
                         == bufferConsumer.getDataType()) {
                     completeTimeoutableCheckpointBarrier(bufferConsumer);
@@ -483,10 +580,12 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
 
                 if (buffers.size() == 1) {
                     // turn off flushRequested flag if we drained all the available data
+                    // 如果队列中只剩一个 Buffer，关闭 flush 标志
                     flushRequested = false;
                 }
 
                 if (bufferConsumer.isFinished()) {
+                    // Buffer 已完成，从队列移除并减少 backlog
                     requireNonNull(buffers.poll()).getBufferConsumer().close();
                     decreaseBuffersInBacklogUnsafe(bufferConsumer.isBuffer());
                 }
@@ -497,6 +596,7 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
                 // 1. all data of a buffer builder has been read and after that the buffer builder
                 // is finished
                 // 2. in approximate recovery mode, a partial record takes a whole buffer builder
+                // 空 Buffer 特殊处理：当独占 Credit 为 0 时，返回空 Buffer 以释放下游的 Credit
                 if (receiverExclusiveBuffersPerChannel == 0 && bufferConsumer.isFinished()) {
                     break;
                 }
@@ -515,6 +615,7 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
                 return null;
             }
 
+            // 如果遇到阻塞上游的数据类型（如 CheckpointBarrier），设置阻塞状态
             if (buffer.getDataType().isBlockingUpstream()) {
                 isBlocked = true;
             }
@@ -530,6 +631,7 @@ public class PipelinedSubpartition extends ResultSubpartition implements Channel
                     buffer,
                     parent.getOwningTaskName(),
                     subpartitionInfo);
+            // 返回 Buffer 和背压信息
             return new BufferAndBacklog(
                     buffer,
                     getBuffersInBacklogUnsafe(),

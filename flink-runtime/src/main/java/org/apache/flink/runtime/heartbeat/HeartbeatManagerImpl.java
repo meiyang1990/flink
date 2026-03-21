@@ -42,34 +42,87 @@ import java.util.function.Consumer;
  * HeartbeatListener} about it. A heartbeat times out iff no heartbeat signal has been received
  * within a given timeout interval.
  *
+ * <p>【学习笔记】HeartbeatManagerImpl 是 Flink 心跳机制的核心实现。
+ *
+ * <h3>一、核心组件</h3>
+ * <ul>
+ *   <li><b>heartbeatTargets</b>：ResourceID → HeartbeatMonitor 的映射，管理所有监控目标</li>
+ *   <li><b>HeartbeatMonitor</b>：单个目标的心跳监控器，负责超时检测和定时发送</li>
+ *   <li><b>HeartbeatListener</b>：心跳事件回调，处理超时、负载报告等</li>
+ * </ul>
+ *
+ * <h3>二、使用场景</h3>
+ * <ul>
+ *   <li><b>JobManager ↔ TaskManager</b>：监控 Task 执行状态</li>
+ *   <li><b>ResourceManager ↔ JobManager</b>：监控作业健康状态</li>
+ *   <li><b>ResourceManager ↔ TaskManager</b>：监控集群资源可用性</li>
+ * </ul>
+ *
+ * <h3>三、线程安全</h3>
+ * <p>该类是线程安全的（@ThreadSafe）：
+ * <ul>
+ *   <li>使用 ConcurrentHashMap 存储监控目标</li>
+ *   <li>心跳超时回调在 mainThreadExecutor 中执行，避免并发问题</li>
+ * </ul>
+ *
+ * <h3>四、RPC 失败处理</h3>
+ * <p>引入 failedRpcRequestsUntilUnreachable 参数，当连续 N 次心跳 RPC 失败后，
+ * 才判定目标不可达，避免因网络抖动导致的误判。
+ *
  * @param <I> Type of the incoming heartbeat payload
  * @param <O> Type of the outgoing heartbeat payload
  */
 @ThreadSafe
 class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
 
-    /** Heartbeat timeout interval in milli seconds. */
+    /**
+     * Heartbeat timeout interval in milli seconds.
+     * 心跳超时时间（毫秒），超过此时间未收到心跳则判定目标失联。
+     * 配置项：heartbeat.timeout（默认 50000ms）
+     */
     private final long heartbeatTimeoutIntervalMs;
 
+    /**
+     * 连续 RPC 失败多少次后判定目标不可达。
+     * 用于避免网络抖动导致的误判，增强系统健壮性。
+     */
     private final int failedRpcRequestsUntilUnreachable;
 
-    /** Resource ID which is used to mark one own's heartbeat signals. */
+    /**
+     * Resource ID which is used to mark one own's heartbeat signals.
+     * 本节点的 ResourceID，用于标识心跳消息的发送方。
+     */
     private final ResourceID ownResourceID;
 
-    /** Heartbeat listener with which the heartbeat manager has been associated. */
+    /**
+     * Heartbeat listener with which the heartbeat manager has been associated.
+     * 心跳事件监听器，处理超时、负载报告等回调。
+     * 不同场景有不同实现（如 JobMaster、TaskExecutor、ResourceManager）。
+     */
     private final HeartbeatListener<I, O> heartbeatListener;
 
-    /** Executor service used to run heartbeat timeout notifications. */
+    /**
+     * Executor service used to run heartbeat timeout notifications.
+     * 心跳超时通知的执行器，确保回调在主线程中顺序执行。
+     */
     private final ScheduledExecutor mainThreadExecutor;
 
     protected final Logger log;
 
-    /** Map containing the heartbeat monitors associated with the respective resource ID. */
+    /**
+     * Map containing the heartbeat monitors associated with the respective resource ID.
+     * ResourceID 到 HeartbeatMonitor 的映射，管理所有监控目标。
+     * 使用 ConcurrentHashMap 保证线程安全。
+     */
     private final ConcurrentHashMap<ResourceID, HeartbeatMonitor<O>> heartbeatTargets;
 
+    // 心跳监控器工厂，用于创建 HeartbeatMonitor 实例
     private final HeartbeatMonitor.Factory<O> heartbeatMonitorFactory;
 
-    /** Running state of the heartbeat manager. */
+    /**
+     * Running state of the heartbeat manager.
+     * 心跳管理器的运行状态，volatile 保证多线程可见性。
+     */
     protected volatile boolean stopped;
 
     public HeartbeatManagerImpl(

@@ -56,34 +56,100 @@ import static org.apache.flink.core.memory.MemorySegmentFactory.allocateOffHeapU
  * <p>The memory segments are represented as off-heap unsafe memory regions (both via {@link
  * MemorySegment}). Releasing a memory segment will make it re-claimable by the garbage collector,
  * but does not necessarily immediately releases the underlying memory.
+ *
+ * <p>【学习笔记】MemoryManager 是 Flink 运行时的核心内存管理组件。
+ *
+ * <h3>一、设计目的</h3>
+ * <ul>
+ *   <li><b>统一管理</b>：集中管理 Task 的 Managed Memory（托管内存）</li>
+ *   <li><b>防止 OOM</b>：通过预算控制确保内存使用不超限</li>
+ *   <li><b>支持 Off-Heap</b>：使用堆外内存减少 GC 压力</li>
+ * </ul>
+ *
+ * <h3>二、内存分配方式</h3>
+ * <ul>
+ *   <li><b>MemorySegment 分配</b>：固定大小的内存页（默认 32KB），适用于排序、哈希等批处理操作</li>
+ *   <li><b>Chunk 预留</b>：任意大小的内存块，适用于 RocksDB 等状态后端</li>
+ *   <li><b>共享资源</b>：支持多个算子共享同一块内存资源</li>
+ * </ul>
+ *
+ * <h3>三、使用场景</h3>
+ * <ul>
+ *   <li><b>批处理</b>：Sort、Hash Join、Hash Aggregation 等算子</li>
+ *   <li><b>流处理</b>：RocksDB 状态后端的块缓存和写缓冲</li>
+ *   <li><b>Python UDF</b>：Python 进程的堆外内存</li>
+ * </ul>
+ *
+ * <h3>四、配置参数</h3>
+ * <ul>
+ *   <li>{@code taskmanager.memory.managed.size}：托管内存总量</li>
+ *   <li>{@code taskmanager.memory.managed.fraction}：托管内存占 Flink 总内存的比例</li>
+ *   <li>{@code taskmanager.memory.segment-size}：内存页大小（默认 32KB）</li>
+ * </ul>
+ *
+ * <h3>五、Owner 机制</h3>
+ * <p>所有内存分配都关联一个 Owner（通常是算子实例），用于：
+ * <ul>
+ *   <li>追踪内存使用</li>
+ *   <li>Task 结束时批量释放</li>
+ *   <li>检测内存泄漏</li>
+ * </ul>
  */
 public class MemoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);
 
-    /** The default memory page size. Currently set to 32 KiBytes. */
+    /**
+     * The default memory page size. Currently set to 32 KiBytes.
+     * 默认内存页大小（32KB），这是 Flink 内存管理的基本单位。
+     * 选择 32KB 是在内存利用率和管理开销之间的平衡。
+     */
     public static final int DEFAULT_PAGE_SIZE = 32 * 1024;
 
-    /** The minimal memory page size. Currently set to 4 KiBytes. */
+    /**
+     * The minimal memory page size. Currently set to 4 KiBytes.
+     * 最小内存页大小（4KB），防止页过小导致管理开销过大。
+     */
     public static final int MIN_PAGE_SIZE = 4 * 1024;
 
     // ------------------------------------------------------------------------
 
-    /** Memory segments allocated per memory owner. */
+    /**
+     * Memory segments allocated per memory owner.
+     * Owner → 已分配的 MemorySegment 集合。
+     * 用于追踪每个 Owner 的内存使用，支持按 Owner 批量释放。
+     */
     private final Map<Object, Set<MemorySegment>> allocatedSegments;
 
-    /** Reserved memory per memory owner. */
+    /**
+     * Reserved memory per memory owner.
+     * Owner → 预留的内存大小（字节）。
+     * Chunk 预留模式下使用，如 RocksDB 状态后端。
+     */
     private final Map<Object, Long> reservedMemory;
 
+    // 内存页大小（字节）
     private final long pageSize;
 
+    // 总页数，由总内存大小 / 页大小计算得出
     private final long totalNumberOfPages;
 
+    /**
+     * 内存预算管理器，基于 Unsafe 分配堆外内存。
+     * 负责追踪可用内存和已分配内存，确保不超出总预算。
+     */
     private final UnsafeMemoryBudget memoryBudget;
 
+    /**
+     * 共享资源管理器，支持多个 Owner 共享同一块内存。
+     * 典型场景：多个算子共享 RocksDB 的块缓存。
+     */
     private final SharedResources sharedResources;
 
-    /** Flag whether the close() has already been invoked. */
+    /**
+     * Flag whether the close() has already been invoked.
+     * 是否已关闭。volatile 保证多线程可见性。
+     */
     private volatile boolean isShutDown;
 
     /**
@@ -203,6 +269,14 @@ public class MemoryManager {
      *
      * <p>The total allocated memory will not exceed its size limit, announced in the constructor.
      *
+     * <p>【核心方法】分配指定数量的内存页：
+     * <ol>
+     *   <li>参数校验：Owner 非空、未关闭、请求页数不超限</li>
+     *   <li>内存预算：从 memoryBudget 预留内存</li>
+     *   <li>分配内存：通过 Unsafe 分配堆外内存并包装为 MemorySegment</li>
+     *   <li>记账：将分配的 Segment 关联到 Owner</li>
+     * </ol>
+     *
      * @param owner The owner to associate with the memory segment, for the fallback release.
      * @param target The list into which to put the allocated memory pages.
      * @param numberOfPages The number of pages to allocate.
@@ -212,6 +286,7 @@ public class MemoryManager {
     public void allocatePages(Object owner, Collection<MemorySegment> target, int numberOfPages)
             throws MemoryAllocationException {
         // sanity check
+        // 参数校验
         Preconditions.checkNotNull(owner, "The memory owner must not be null.");
         Preconditions.checkState(!isShutDown, "Memory manager has been shut down.");
         Preconditions.checkArgument(
@@ -221,10 +296,12 @@ public class MemoryManager {
                 totalNumberOfPages);
 
         // reserve array space, if applicable
+        // 预分配 ArrayList 容量，避免扩容开销
         if (target instanceof ArrayList) {
             ((ArrayList<MemorySegment>) target).ensureCapacity(numberOfPages);
         }
 
+        // 从内存预算中预留内存
         long memoryToReserve = numberOfPages * pageSize;
         try {
             memoryBudget.reserveMemory(memoryToReserve);
@@ -233,6 +310,7 @@ public class MemoryManager {
                     String.format("Could not allocate %d pages", numberOfPages), e);
         }
 
+        // 分配堆外内存并注册到 Owner
         Runnable pageCleanup = this::releasePage;
         allocatedSegments.compute(
                 owner,
@@ -242,6 +320,7 @@ public class MemoryManager {
                                     ? CollectionUtil.newHashSetWithExpectedSize(numberOfPages)
                                     : currentSegmentsForOwner;
                     for (long i = numberOfPages; i > 0; i--) {
+                        // 通过 Unsafe 分配堆外内存
                         MemorySegment segment =
                                 allocateOffHeapUnsafeMemory(getPageSize(), owner, pageCleanup);
                         target.add(segment);
@@ -250,6 +329,7 @@ public class MemoryManager {
                     return segmentsForOwner;
                 });
 
+        // 再次检查是否在分配过程中被并发关闭
         Preconditions.checkState(!isShutDown, "Memory manager has been concurrently shut down.");
     }
 
@@ -509,6 +589,20 @@ public class MemoryManager {
      * to be handled by the caller of {@link OpaqueMemoryResource#close()}. For example, if this
      * indicates that native memory was not released and the process might thus have a memory leak,
      * the caller can decide to kill the process as a result.
+     *
+     * <p>【核心方法】获取或创建共享内存资源，典型场景是 RocksDB 的块缓存。
+     *
+     * <h4>工作流程：</h4>
+     * <ol>
+     *   <li>计算所需内存大小（基于 fraction）</li>
+     *   <li>尝试获取已存在的共享资源，或创建新资源</li>
+     *   <li>创建时先预留内存预算，再调用初始化器</li>
+     *   <li>返回 OpaqueMemoryResource，持有者负责在不需要时关闭</li>
+     * </ol>
+     *
+     * <h4>共享语义：</h4>
+     * <p>多个算子可以共享同一个资源（如 RocksDB 块缓存），使用引用计数管理生命周期，
+     * 最后一个持有者关闭时才真正释放资源。
      */
     public <T extends AutoCloseable>
             OpaqueMemoryResource<T> getSharedMemoryResourceForManagedMemory(
@@ -519,13 +613,16 @@ public class MemoryManager {
 
         // if we need to allocate the resource (no shared resource allocated, yet), this would be
         // the size to use
+        // 计算内存大小：总托管内存 * fraction
         final long numBytes = computeMemorySize(fractionToInitializeWith);
 
         // initializer and releaser as functions that are pushed into the SharedResources,
         // so that the SharedResources can decide in (thread-safely execute) when initialization
         // and release should happen
+        // 预留内存并初始化资源的闭包
         final LongFunctionWithException<T, Exception> reserveAndInitialize =
                 (size) -> {
+                    // 先从内存预算中预留
                     try {
                         reserveMemory(type, size);
                     } catch (MemoryReservationException e) {
@@ -536,22 +633,27 @@ public class MemoryManager {
                                 e);
                     }
 
+                    // 预留成功后调用初始化器创建实际资源
                     try {
                         return initializer.apply(size);
                     } catch (Throwable t) {
+                        // 初始化失败时释放已预留的内存
                         releaseMemory(type, size);
                         throw t;
                     }
                 };
 
+        // 释放内存的闭包
         final LongConsumer releaser = (size) -> releaseMemory(type, size);
 
         // This object identifies the lease in this request. It is used only to identify the release
         // operation.
         // Using the object to represent the lease is a bit nicer safer than just using a reference
         // counter.
+        // 租约持有者对象，用于标识这次获取
         final Object leaseHolder = new Object();
 
+        // 获取或创建共享资源
         final SharedResources.ResourceAndSize<T> resource =
                 sharedResources.getOrAllocateSharedResource(
                         type, leaseHolder, reserveAndInitialize, numBytes);
@@ -560,8 +662,10 @@ public class MemoryManager {
         // was by
         // someone else before with a different value for fraction (should not happen in practice,
         // though).
+        // 实际大小可能与请求不同（如果资源已被其他人创建）
         final long size = resource.size();
 
+        // 创建释放器：释放租约时调用
         final ThrowingRunnable<Exception> disposer =
                 () -> sharedResources.release(type, leaseHolder, releaser);
 

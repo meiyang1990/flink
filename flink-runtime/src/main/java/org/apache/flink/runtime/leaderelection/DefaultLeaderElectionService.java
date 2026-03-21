@@ -46,18 +46,63 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * leader information to various storage.
  *
  * <p>{@code DefaultLeaderElectionService} handles a single {@link LeaderContender}.
+ *
+ * <p>【学习笔记】DefaultLeaderElectionService 是 Flink Leader 选举的默认实现。
+ *
+ * <h3>一、设计模式</h3>
+ * <p>采用<b>策略模式</b>，通过 LeaderElectionDriver 适配不同的 HA 后端：
+ * <ul>
+ *   <li>{@code ZooKeeperLeaderElectionDriver}：基于 ZooKeeper 的选举</li>
+ *   <li>{@code KubernetesLeaderElectionDriver}：基于 K8s ConfigMap 的选举</li>
+ * </ul>
+ *
+ * <h3>二、核心状态</h3>
+ * <ul>
+ *   <li><b>issuedLeaderSessionID</b>：当前颁发的 Leader Session ID，null 表示非 Leader</li>
+ *   <li><b>confirmedLeaderInformation</b>：已确认的 Leader 信息注册表</li>
+ *   <li><b>leaderContenderRegistry</b>：组件 ID → LeaderContender 的映射</li>
+ * </ul>
+ *
+ * <h3>三、生命周期</h3>
+ * <ol>
+ *   <li><b>createLeaderElection()</b>：为组件创建选举实例</li>
+ *   <li><b>register()</b>：注册竞选者，首次注册时创建 Driver 并连接 HA 后端</li>
+ *   <li><b>onGrantLeadership()</b>：HA 后端通知获得领导权</li>
+ *   <li><b>confirmLeadershipAsync()</b>：确认领导权并发布 Leader 信息</li>
+ *   <li><b>onRevokeLeadership()</b>：HA 后端通知失去领导权</li>
+ *   <li><b>remove()</b>：取消注册，最后一个竞选者移除时关闭 Driver</li>
+ * </ol>
+ *
+ * <h3>四、线程模型</h3>
+ * <p>使用单线程 ExecutorService（leadershipOperationExecutor）处理所有选举事件，
+ * 确保事件顺序执行，避免并发问题。
+ *
+ * <h3>五、与 LeaderContender 的交互</h3>
+ * <ul>
+ *   <li>{@code grantLeadership()}：通知竞选者获得领导权</li>
+ *   <li>{@code revokeLeadership()}：通知竞选者失去领导权</li>
+ *   <li>{@code handleError()}：通知竞选者发生错误</li>
+ * </ul>
  */
 public class DefaultLeaderElectionService extends DefaultLeaderElection.ParentService
         implements LeaderElectionService, LeaderElectionDriver.Listener, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultLeaderElectionService.class);
 
+    // 日志事件名称常量
     private static final String LEADER_ACQUISITION_EVENT_LOG_NAME = "Leader Acquisition";
     private static final String LEADER_REVOCATION_EVENT_LOG_NAME = "Leader Revocation";
+
+    // 同步锁，保护内部状态的一致性
     private final Object lock = new Object();
 
+    // Leader 选举驱动工厂，用于创建具体的 HA 后端驱动（ZooKeeper/Kubernetes）
     private final LeaderElectionDriverFactory leaderElectionDriverFactory;
 
+    /**
+     * 组件 ID → LeaderContender 的映射表。
+     * 支持多个组件共用同一个选举服务（如 Dispatcher、ResourceManager）。
+     */
     @GuardedBy("lock")
     private final Map<String, LeaderContender> leaderContenderRegistry = new HashMap<>();
 
@@ -67,6 +112,9 @@ public class DefaultLeaderElectionService extends DefaultLeaderElection.ParentSe
      * indicates that this service isn't the leader right now (i.e. {@link
      * #onGrantLeadership(UUID)}) wasn't called, yet (independently of what {@code
      * leaderElectionDriver#hasLeadership()} returns).
+     *
+     * <p>当前颁发的 Leader Session ID。null 表示当前不是 Leader。
+     * 这是判断是否持有领导权的核心标志。
      */
     @GuardedBy("lock")
     @Nullable
@@ -77,10 +125,13 @@ public class DefaultLeaderElectionService extends DefaultLeaderElection.ParentSe
      * semantic difference between an entry with an empty {@code LeaderInformation} and no entry
      * being present at all here. Both mean that no confirmed {@code LeaderInformation} is available
      * for the corresponding {@code componentId}.
+     *
+     * <p>已确认的 Leader 信息注册表，存储每个组件确认后的 Leader 地址和 Session ID。
      */
     @GuardedBy("lock")
     private LeaderInformationRegister confirmedLeaderInformation;
 
+    // 服务运行状态
     @GuardedBy("lock")
     private boolean running;
 
@@ -90,6 +141,9 @@ public class DefaultLeaderElectionService extends DefaultLeaderElection.ParentSe
      * as soon as the first contender is added to the empty {@code leaderContenderRegistry}. Only
      * then, a connection to the {@code DefaultLeaderElectionService} backend is established. The
      * service resets and closes the driver with the removal of the last contender.
+     *
+     * <p>Leader 选举驱动器，负责与 HA 后端（ZooKeeper/Kubernetes）交互。
+     * 生命周期与 leaderContenderRegistry 绑定：第一个竞选者注册时创建，最后一个竞选者移除时关闭。
      */
     @GuardedBy("lock")
     private LeaderElectionDriver leaderElectionDriver;
@@ -100,9 +154,13 @@ public class DefaultLeaderElectionService extends DefaultLeaderElection.ParentSe
      * events.
      *
      * <p>The executor is guarded by this instance's {@link #running} state.
+     *
+     * <p>领导权事件处理线程池，使用单线程确保事件顺序执行。
+     * 所有选举相关的回调（获得/失去领导权）都在此线程中处理。
      */
     private final ExecutorService leadershipOperationExecutor;
 
+    // 后备错误处理器，当没有注册的竞选者时使用
     private final FatalErrorHandler fallbackErrorHandler;
 
     public DefaultLeaderElectionService(LeaderElectionDriverFactory leaderElectionDriverFactory) {
