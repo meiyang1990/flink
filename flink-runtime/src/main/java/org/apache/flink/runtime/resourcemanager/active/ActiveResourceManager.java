@@ -78,54 +78,135 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <p>This resource manager actively requests and releases resources from/to the external resource
  * management frameworks. With different {@link ResourceManagerDriver} provided, this resource
  * manager can work with various frameworks.
+ *
+ * <p>主动式资源管理器，继承自 {@link ResourceManager}，负责与外部资源管理框架（如 YARN、K8s、Mesos）交互。
+ *
+ * <p>与 {@link ResourceManager} 的区别：
+ * <ul>
+ *     <li><b>ResourceManager</b>：被动式，只管理已有的 Worker，不主动申请资源</li>
+ *     <li><b>ActiveResourceManager</b>：主动式，根据 SlotManager 的资源声明主动向外部框架申请/释放 Worker</li>
+ * </ul>
+ *
+ * <p>核心机制：
+ * <ul>
+ *     <li><b>声明式资源管理</b>：SlotManager 声明需要的资源数量，ActiveRM 负责达成目标状态</li>
+ *     <li><b>Worker 生命周期</b>：
+ *         <ol>
+ *             <li>SlotManager 调用 {@link #declareResourceNeeded} 声明资源需求</li>
+ *             <li>ActiveRM 调用 Driver 的 {@link ResourceManagerDriver#requestResource} 申请 Worker</li>
+ *             <li>Driver 返回 WorkerType（如 YARN Container），Worker 进入 pending 状态</li>
+ *             <li>Worker 启动后向 RM 注册，从 pending 变为 registered</li>
+ *             <li>资源不再需要时，调用 Driver 的 {@link ResourceManagerDriver#releaseResource} 释放</li>
+ *         </ol>
+ *     </li>
+ *     <li><b>故障恢复</b>：支持从前一次尝试恢复已有的 Worker，避免重复申请</li>
+ *     <li><b>失败速率控制</b>：Worker 启动失败超过阈值时进入冷却期，避免频繁重试</li>
+ * </ul>
+ *
+ * <p>与外部框架的交互通过 {@link ResourceManagerDriver} 抽象：
+ * <ul>
+ *     <li>YARN：{@code YarnResourceManagerDriver}</li>
+ *     <li>Kubernetes：{@code KubernetesResourceManagerDriver}</li>
+ *     <li>Standalone/Mesos 等</li>
+ * </ul>
+ *
+ * <p>Worker 状态追踪：
+ * <ul>
+ *     <li>{@link #workerNodeMap}：所有已分配的 Worker（包括 pending 和 registered）</li>
+ *     <li>{@link #currentAttemptUnregisteredWorkers}：当前尝试中已分配但未注册的 Worker</li>
+ *     <li>{@link #previousAttemptUnregisteredWorkers}：前一次尝试恢复的但未注册的 Worker</li>
+ *     <li>{@link #pendingWorkerCounter}：按资源规格统计的 pending Worker 数量</li>
+ *     <li>{@link #totalWorkerCounter}：按资源规格统计的总 Worker 数量</li>
+ * </ul>
  */
 public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
         extends ResourceManager<WorkerType> implements ResourceEventHandler<WorkerType> {
 
+    /** Flink 配置对象，包含资源管理相关的配置参数 */
     protected final Configuration flinkConfig;
 
+    /** Worker 启动失败后的重试间隔，避免频繁重试导致资源框架压力过大 */
     private final Duration startWorkerRetryInterval;
 
+    /**
+     * 资源管理驱动，封装了与外部资源框架的交互逻辑。
+     * 不同框架有不同实现：YarnResourceManagerDriver、KubernetesResourceManagerDriver 等
+     */
     private final ResourceManagerDriver<WorkerType> resourceManagerDriver;
 
-    /** All workers maintained by {@link ActiveResourceManager}. */
+    /**
+     * 所有已分配的 Worker 映射表。
+     * key: ResourceID（Worker 的唯一标识）
+     * value: WorkerType（框架特定的 Worker 表示，如 YARN Container）
+     */
     private final Map<ResourceID, WorkerType> workerNodeMap;
 
-    /** Number of requested and not registered workers per worker resource spec. */
+    /**
+     * 按资源规格统计的 pending（已申请但未注册）Worker 数量。
+     * 用于跟踪正在启动中的 Worker，避免重复申请。
+     */
     private final WorkerCounter pendingWorkerCounter;
 
-    /** Number of requested or registered recovered workers per worker resource spec. */
+    /**
+     * 按资源规格统计的总 Worker 数量（pending + registered）。
+     * 用于与 SlotManager 声明的需求进行对比。
+     */
     private final WorkerCounter totalWorkerCounter;
 
-    /** Identifiers and worker resource spec of all allocated workers. */
+    /**
+     * 每个 Worker 对应的资源规格。
+     * 用于在释放 Worker 时正确更新计数器。
+     */
     private final Map<ResourceID, WorkerResourceSpec> workerResourceSpecs;
 
+    /**
+     * 尚未分配（请求还在进行中）的 Worker Future 及其资源规格。
+     * 用于在需要释放资源时取消正在进行的申请。
+     */
     private final Map<CompletableFuture<WorkerType>, WorkerResourceSpec> unallocatedWorkerFutures;
 
-    /** Identifiers of requested not registered workers. */
+    /**
+     * 当前尝试中已申请但未注册的 Worker ID 集合。
+     * Worker 注册后会从此集合移除，用于跟踪启动进度。
+     */
     private final Set<ResourceID> currentAttemptUnregisteredWorkers;
 
-    /** Identifiers of recovered and not registered workers. */
+    /**
+     * 前一次尝试恢复的但未注册的 Worker ID 集合。
+     * 用于 HA 故障恢复场景，区分新申请的和恢复的 Worker。
+     */
     private final Set<ResourceID> previousAttemptUnregisteredWorkers;
 
+    /**
+     * Worker 启动失败速率计量器。
+     * 超过阈值时触发冷却机制，暂停申请新 Worker。
+     */
     private final ThresholdMeter startWorkerFailureRater;
 
+    /**
+     * Worker 注册超时时间。
+     * Worker 分配后超过此时间仍未注册，会被停止并重新申请。
+     */
     private final Duration workerRegistrationTimeout;
 
     /**
-     * Incompletion of this future indicates that the max failure rate of start worker is reached
-     * and the resource manager should not retry starting new worker until the future become
-     * completed again. It's guaranteed to be modified in main thread.
+     * Worker 启动冷却标志。
+     * 失败速率超过阈值时变为未完成状态，冷却期结束后完成。
+     * 冷却期间不会申请新 Worker。
      */
     private CompletableFuture<Void> startWorkerCoolDown;
 
-    /** The future indicates whether the rm is ready to serve. */
+    /**
+     * RM 就绪标志。
+     * 当所有前一次尝试的 Worker 都恢复注册后完成，
+     * 或者超过 previousWorkerRecoverTimeout 后强制完成。
+     */
     private final CompletableFuture<Void> readyToServeFuture;
 
-    /** Timeout to wait for all the previous attempts workers to recover. */
+    /** 等待前一次尝试 Worker 恢复的超时时间 */
     private final Duration previousWorkerRecoverTimeout;
 
-    /** ResourceDeclaration of {@link SlotManager}. */
+    /** SlotManager 声明的资源需求 */
     private Collection<ResourceDeclaration> resourceDeclarations;
 
     public ActiveResourceManager(
@@ -324,6 +405,28 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
     //  Internal
     // ------------------------------------------------------------------------
 
+    /**
+     * 检查并协调资源声明与实际 Worker 数量。
+     *
+     * <p>这是 ActiveResourceManager 的核心方法，负责达成 SlotManager 声明的目标状态：
+     * <ul>
+     *     <li><b>资源过剩</b>（当前 Worker 数 > 声明数）：按优先级释放多余 Worker
+     *         <ol>
+     *             <li>释放 SlotManager 标记为 unwanted 的 Worker</li>
+     *             <li>取消尚未分配的 Worker 申请</li>
+     *             <li>释放已分配但未注册的 Worker</li>
+     *             <li>释放已注册的 Worker</li>
+     *         </ol>
+     *     </li>
+     *     <li><b>资源不足</b>（当前 Worker 数 < 声明数）：申请新 Worker
+     *         <ul>
+     *             <li>如果在冷却期，等待冷却结束后重试</li>
+     *             <li>否则立即申请缺少的 Worker 数量</li>
+     *         </ul>
+     *     </li>
+     *     <li><b>资源匹配</b>：无需操作</li>
+     * </ul>
+     */
     private void checkResourceDeclarations() {
         validateRunsInMainThread();
 
@@ -331,31 +434,34 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
             WorkerResourceSpec workerResourceSpec = resourceDeclaration.getSpec();
             int declaredWorkerNumber = resourceDeclaration.getNumNeeded();
 
+            // 计算需要释放或申请的 Worker 数量
+            // 正数表示需要释放，负数表示需要申请
             final int releaseOrRequestWorkerNumber =
                     totalWorkerCounter.getNum(workerResourceSpec) - declaredWorkerNumber;
 
             if (releaseOrRequestWorkerNumber > 0) {
+                // 资源过剩，需要释放 Worker
                 log.info(
                         "need release {} workers, current worker number {}, declared worker number {}",
                         releaseOrRequestWorkerNumber,
                         totalWorkerCounter.getNum(workerResourceSpec),
                         declaredWorkerNumber);
 
-                // release unwanted workers.
+                // 按优先级释放：unwanted > unallocated > starting > registered
                 int remainingReleasingWorkerNumber =
                         releaseUnWantedResources(
                                 resourceDeclaration.getUnwantedWorkers(),
                                 releaseOrRequestWorkerNumber);
 
                 if (remainingReleasingWorkerNumber > 0) {
-                    // release not allocated workers
+                    // 取消尚未分配的 Worker 申请
                     remainingReleasingWorkerNumber =
                             releaseUnallocatedWorkers(
                                     workerResourceSpec, remainingReleasingWorkerNumber);
                 }
 
                 if (remainingReleasingWorkerNumber > 0) {
-                    // release starting workers
+                    // 释放已分配但未注册的 Worker
                     remainingReleasingWorkerNumber =
                             releaseAllocatedWorkers(
                                     currentAttemptUnregisteredWorkers,
@@ -364,7 +470,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
                 }
 
                 if (remainingReleasingWorkerNumber > 0) {
-                    // release registered workers
+                    // 释放已注册的 Worker
                     remainingReleasingWorkerNumber =
                             releaseAllocatedWorkers(
                                     workerNodeMap.keySet(),
@@ -376,10 +482,8 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
                         remainingReleasingWorkerNumber == 0,
                         "there are no more workers to release");
             } else if (releaseOrRequestWorkerNumber < 0) {
-                // In case of start worker failures, we should wait for an interval before
-                // trying to start new workers.
-                // Otherwise, ActiveResourceManager will always re-requesting the worker,
-                // which keeps the main thread busy.
+                // 资源不足，需要申请新 Worker
+                // 检查是否在冷却期，避免失败后频繁重试
                 if (startWorkerCoolDown.isDone()) {
                     int requestWorkerNumber = -releaseOrRequestWorkerNumber;
                     log.info(
@@ -387,13 +491,16 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
                             requestWorkerNumber,
                             totalWorkerCounter.getNum(workerResourceSpec),
                             declaredWorkerNumber);
+                    // 逐个申请 Worker
                     for (int i = 0; i < requestWorkerNumber; i++) {
                         requestNewWorker(workerResourceSpec);
                     }
                 } else {
+                    // 在冷却期，等待冷却结束后重新检查
                     startWorkerCoolDown.thenRun(this::checkResourceDeclarations);
                 }
             } else {
+                // 资源匹配，无需操作
                 log.debug(
                         "current worker number {} meets the declared worker {}",
                         totalWorkerCounter.getNum(workerResourceSpec),
@@ -484,14 +591,31 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
     /**
      * Allocates a resource using the worker resource specification.
      *
+     * <p>向外部资源框架申请新的 Worker。
+     *
+     * <p>申请流程：
+     * <ol>
+     *     <li>将 WorkerResourceSpec 转换为 TaskExecutorProcessSpec（包含 JVM 参数等）</li>
+     *     <li>更新计数器（pendingWorkerCounter、totalWorkerCounter）</li>
+     *     <li>调用 Driver 的 requestResource 异步申请资源</li>
+     *     <li>处理异步结果：
+     *         <ul>
+     *             <li>成功：记录 Worker 信息，启动注册超时检查</li>
+     *             <li>失败/取消：回滚计数器，记录失败并可能触发冷却</li>
+     *         </ul>
+     *     </li>
+     * </ol>
+     *
      * @param workerResourceSpec workerResourceSpec specifies the size of the to be allocated
      *     resource
      */
     @VisibleForTesting
     public void requestNewWorker(WorkerResourceSpec workerResourceSpec) {
+        // 将资源规格转换为进程规格（包含内存、CPU 等 JVM 配置）
         final TaskExecutorProcessSpec taskExecutorProcessSpec =
                 TaskExecutorProcessUtils.processSpecFromWorkerResourceSpec(
                         flinkConfig, workerResourceSpec);
+        // 更新 pending 计数
         final int pendingCount = pendingWorkerCounter.increaseAndGet(workerResourceSpec);
         totalWorkerCounter.increaseAndGet(workerResourceSpec);
 
@@ -500,38 +624,48 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable>
                 workerResourceSpec,
                 pendingCount);
 
+        // 异步申请资源
         final CompletableFuture<WorkerType> requestResourceFuture =
                 resourceManagerDriver.requestResource(taskExecutorProcessSpec);
         unallocatedWorkerFutures.put(requestResourceFuture, workerResourceSpec);
 
+        // 处理异步结果
         FutureUtils.assertNoException(
                 requestResourceFuture.handle(
                         (worker, exception) -> {
+                            // 从 unallocated 集合移除
                             unallocatedWorkerFutures.remove(requestResourceFuture);
 
                             if (exception != null) {
+                                // 申请失败，回滚计数器
                                 final int count =
                                         pendingWorkerCounter.decreaseAndGet(workerResourceSpec);
                                 totalWorkerCounter.decreaseAndGet(workerResourceSpec);
                                 if (exception instanceof CancellationException) {
+                                    // 被主动取消（资源不再需要）
                                     log.info(
                                             "Requesting worker with resource spec {} canceled, current pending count: {}",
                                             workerResourceSpec,
                                             count);
                                 } else {
+                                    // 申请失败
                                     log.warn(
                                             "Failed requesting worker with resource spec {}, current pending count: {}",
                                             workerResourceSpec,
                                             count,
                                             exception);
+                                    // 记录失败，可能触发冷却
                                     recordWorkerFailureAndPauseWorkerCreationIfNeeded();
+                                    // 重新检查资源声明，可能需要重试
                                     checkResourceDeclarations();
                                 }
                             } else {
+                                // 申请成功，记录 Worker 信息
                                 final ResourceID resourceId = worker.getResourceID();
                                 workerNodeMap.put(resourceId, worker);
                                 workerResourceSpecs.put(resourceId, workerResourceSpec);
                                 currentAttemptUnregisteredWorkers.add(resourceId);
+                                // 启动注册超时检查
                                 scheduleWorkerRegistrationTimeoutCheck(resourceId);
                                 log.info(
                                         "Requested worker {} with resource spec {}.",
