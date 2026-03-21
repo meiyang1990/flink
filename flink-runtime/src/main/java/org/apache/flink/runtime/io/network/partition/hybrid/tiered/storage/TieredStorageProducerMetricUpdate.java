@@ -18,11 +18,46 @@
 
 package org.apache.flink.runtime.io.network.partition.hybrid.tiered.storage;
 
-/** The metric statistics for the tiered storage producer. */
+/**
+ * The metric statistics for the tiered storage producer.
+ *
+ * <h2>核心设计概述</h2>
+ *
+ * <p>TieredStorageProducerMetricUpdate 封装生产者端的增量指标数据，用于汇报给
+ * TieredResultPartition 进行指标统计更新。
+ *
+ * <h2>指标说明</h2>
+ *
+ * <ul>
+ *   <li><b>numWriteBuffersDelta</b>: 本次写入的缓冲区数量增量</li>
+ *   <li><b>numWriteBytesDelta</b>: 本次写入的字节数增量</li>
+ * </ul>
+ *
+ * <h2>使用流程</h2>
+ *
+ * <pre>
+ *   TieredStorageProducerClient.write()
+ *           │
+ *           │ 数据写入完成
+ *           ▼
+ *   new TieredStorageProducerMetricUpdate(buffersDelta, bytesDelta)
+ *           │
+ *           │ 返回给调用方
+ *           ▼
+ *   TieredResultPartition.updateProducerMetricStatistics()
+ *           │
+ *           │ 更新全局计数器
+ *           ▼
+ *   numBuffersOut += buffersDelta
+ *   numBytesOut += bytesDelta
+ * </pre>
+ */
 public class TieredStorageProducerMetricUpdate {
 
+    // 写入的缓冲区数量增量
     private final int numWriteBuffersDelta;
 
+    // 写入的字节数增量
     private final int numWriteBytesDelta;
 
     TieredStorageProducerMetricUpdate(int numWriteBuffersDelta, int numWriteBytesDelta) {
@@ -30,10 +65,16 @@ public class TieredStorageProducerMetricUpdate {
         this.numWriteBytesDelta = numWriteBytesDelta;
     }
 
+    /**
+     * 获取写入的缓冲区数量增量。
+     */
     public int numWriteBuffersDelta() {
         return numWriteBuffersDelta;
     }
 
+    /**
+     * 获取写入的字节数增量。
+     */
     public int numWriteBytesDelta() {
         return numWriteBytesDelta;
     }
