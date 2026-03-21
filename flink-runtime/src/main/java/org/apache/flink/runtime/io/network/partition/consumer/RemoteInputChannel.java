@@ -71,30 +71,56 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** An input channel, which requests a remote partition queue. */
+/**
+ * An input channel, which requests a remote partition queue.
+ *
+ * <p>【学习型注释】
+ * RemoteInputChannel 是跨 TaskManager 的远程输入通道。
+ * 当上游 Task 和下游 Task 部署在不同的 TaskManager 时使用。
+ *
+ * <p>数据传输流程：
+ * 1. 通过 ConnectionManager 建立 Netty 连接（TCP）
+ * 2. 发送 PartitionRequest 请求上游 Subpartition 数据
+ * 3. 上游 Task 将数据通过 Netty 发送到下游
+ * 4. 数据到达后存入 receivedBuffers 队列，等待消费
+ *
+ * <p>流量控制（Credit-based Flow Control）：
+ * Flink 使用基于信用的流量控制来防止 OOM：
+ * - 下游 Channel 有 initialCredit 个信用（初始缓冲区配额）
+ * - 消费 Buffer 后归还信用给上游
+ * - 上游只有在有信用时才发送数据
+ *
+ * <p>Unaligned Checkpoint 支持：
+ * 通过 ChannelStatePersister 支持通道状态的持久化和恢复。
+ */
 public class RemoteInputChannel extends InputChannel {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteInputChannel.class);
 
     private static final int NONE = -1;
 
-    /** ID to distinguish this channel from other channels sharing the same TCP connection. */
+    /** ID to distinguish this channel from other channels sharing the same TCP connection.
+     * 【注释】通道唯一 ID，用于在共享 TCP 连接中区分不同 Channel */
     private final InputChannelID id = new InputChannelID();
 
-    /** The connection to use to request the remote partition. */
+    /** The connection to use to request the remote partition.
+     * 【注释】远程连接 ID，包含上游 TaskManager 地址 */
     private final ConnectionID connectionId;
 
-    /** The connection manager to use connect to the remote partition provider. */
+    /** The connection manager to use connect to the remote partition provider.
+     * 【注释】连接管理器，用于建立和管理 Netty 连接 */
     private final ConnectionManager connectionManager;
 
     /**
      * The received buffers. Received buffers are enqueued by the network I/O thread and the queue
      * is consumed by the receiving task thread.
+     * 【注释】接收到的 Buffer 队列，网络 IO 线程入队，Task 线程消费
      */
     private final PrioritizedDeque<SequenceBuffer> receivedBuffers = new PrioritizedDeque<>();
 
     /**
      * Flag indicating whether this channel has been released. Either called by the receiving task
      * thread or the task manager actor.
+     * 【注释】通道是否已释放的标记
      */
     private final AtomicBoolean isReleased = new AtomicBoolean();
 

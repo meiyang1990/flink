@@ -48,33 +48,60 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *   <li>{@link #getNextBuffer()}
  *   <li>{@link #releaseAllResources()}
  * </ol>
+ *
+ * <p>【学习型注释】
+ * InputChannel 是消费上游 ResultSubpartition 数据的通道抽象。
+ * 每个 InputChannel 对应一个上游 subtask 的一个输出子分区。
+ *
+ * <p>实现类：
+ * - LocalInputChannel：本地通道，上下游 Task 在同一 TaskManager，直接内存访问
+ * - RemoteInputChannel：远程通道，上下游 Task 在不同 TaskManager，通过 Netty 网络传输
+ * - UnknownInputChannel：未知通道，部署时上游位置未确定，稍后转换为 Local 或 Remote
+ *
+ * <p>生命周期：
+ * 1. requestSubpartitions()：请求上游分区，建立数据传输连接
+ * 2. getNextBuffer()：循环读取 Buffer，处理数据和事件
+ * 3. releaseAllResources()：释放资源，关闭连接
+ *
+ * <p>背压机制：
+ * Channel 消费速度慢时，上游 Buffer 积压，触发生产者端背压。
+ *
+ * <p>重试机制：
+ * 使用指数退避（initialBackoff -> maxBackoff）处理分区请求失败。
  */
 public abstract class InputChannel {
-    /** The info of the input channel to identify it globally within a task. */
+    /** The info of the input channel to identify it globally within a task.
+     * 【注释】通道信息，包含 Gate 索引和 Channel 索引，用于全局标识 */
     protected final InputChannelInfo channelInfo;
 
-    /** The parent partition of the subpartitions consumed by this channel. */
+    /** The parent partition of the subpartitions consumed by this channel.
+     * 【注释】消费的父分区 ID */
     protected final ResultPartitionID partitionId;
 
-    /** The indexes of the subpartitions consumed by this channel. */
+    /** The indexes of the subpartitions consumed by this channel.
+     * 【注释】消费的子分区索引集合 */
     protected final ResultSubpartitionIndexSet consumedSubpartitionIndexSet;
 
+    /** 【注释】所属的 InputGate */
     protected final SingleInputGate inputGate;
 
     // - Asynchronous error notification --------------------------------------
 
+    /** 【注释】异步错误通知，存储发生的异常 */
     private final AtomicReference<Throwable> cause = new AtomicReference<Throwable>();
 
     // - Partition request backoff --------------------------------------------
 
-    /** The initial backoff (in ms). */
+    /** The initial backoff (in ms). 【注释】初始退避时间（毫秒） */
     protected final int initialBackoff;
 
-    /** The maximum backoff (in ms). */
+    /** The maximum backoff (in ms). 【注释】最大退避时间（毫秒） */
     protected final int maxBackoff;
 
+    /** 【注释】接收字节数计数器 */
     protected final Counter numBytesIn;
 
+    /** 【注释】接收 Buffer 数计数器 */
     protected final Counter numBuffersIn;
 
     /**

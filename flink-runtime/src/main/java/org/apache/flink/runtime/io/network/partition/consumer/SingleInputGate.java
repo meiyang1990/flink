@@ -124,52 +124,85 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <p>In the above example, two map subtasks produce the intermediate result in parallel, resulting
  * in two partitions (Partition 1 and 2). Each of these partitions is further partitioned into two
  * subpartitions -- one for each parallel reduce subtask.
+ *
+ * <p>【学习型注释】
+ * SingleInputGate 是 Task 读取上游数据的入口，对应一个被消费的中间结果（IntermediateResult）。
+ * 每个 InputGate 包含多个 InputChannel，每个 Channel 对应一个上游 Partition 的 Subpartition。
+ *
+ * <p>数据读取流程：
+ * 1. InputGate 管理多个 InputChannel（数量 = 上游并行度）
+ * 2. 每个 Channel 从对应的 ResultSubpartition 拉取数据
+ * 3. InputGate.getNext() 轮询所有 Channel，返回有数据的 Buffer
+ *
+ * <p>Channel 类型：
+ * - LocalInputChannel：同一 TaskManager 内，直接内存访问
+ * - RemoteInputChannel：跨 TaskManager，通过 Netty 网络传输
+ * - UnknownInputChannel：部署时上游位置未知，稍后转换为 Local/Remote
+ *
+ * <p>背压机制：
+ * InputGate 有自己的 BufferPool，缓冲区耗尽时停止接收数据，
+ * 上游生产者因无法发送数据而阻塞，形成端到端背压。
+ *
+ * <p>Checkpoint 支持：
+ * InputGate 负责处理 CheckpointBarrier 对齐（Aligned Checkpoint）
+ * 或在 Unaligned Checkpoint 模式下缓存跨 Barrier 的数据。
  */
 public class SingleInputGate extends IndexedInputGate {
 
     private static final Logger LOG = LoggerFactory.getLogger(SingleInputGate.class);
 
-    /** Lock object to guard partition requests and runtime channel updates. */
+    /** Lock object to guard partition requests and runtime channel updates.
+     * 【注释】保护分区请求和运行时 Channel 更新的锁 */
     private final Object requestLock = new Object();
 
-    /** The name of the owning task, for logging purposes. */
+    /** The name of the owning task, for logging purposes.
+     * 【注释】拥有此 InputGate 的 Task 名称 */
     private final String owningTaskName;
 
+    /** 【注释】InputGate 在 Task 中的索引 */
     private final int gateIndex;
 
     /**
      * The ID of the consumed intermediate result. Each input gate consumes partitions of the
      * intermediate result specified by this ID. This ID also identifies the input gate at the
      * consuming task.
+     * 【注释】消费的中间结果 ID，标识此 InputGate 读取哪个上游算子的输出
      */
     private final IntermediateDataSetID consumedResultId;
 
-    /** The type of the partition the input gate is consuming. */
+    /** The type of the partition the input gate is consuming.
+     * 【注释】消费的分区类型（PIPELINED/BLOCKING） */
     private final ResultPartitionType consumedPartitionType;
 
-    /** The number of input channels (equivalent to the number of consumed partitions). */
+    /** The number of input channels (equivalent to the number of consumed partitions).
+     * 【注释】输入通道数量（等于上游并行度） */
     private final int numberOfInputChannels;
 
-    /** Input channels. We store this in a map for runtime updates of single channels. */
+    /** Input channels. We store this in a map for runtime updates of single channels.
+     * 【注释】所有输入通道的映射表，支持运行时动态更新 */
     private final Map<IntermediateResultPartitionID, Map<InputChannelInfo, InputChannel>>
             inputChannels;
 
     @GuardedBy("requestLock")
     private final InputChannel[] channels;
 
-    /** Channels, which notified this input gate about available data. */
+    /** Channels, which notified this input gate about available data.
+     * 【注释】有数据可读的 Channel 队列（优先级队列，支持 Checkpoint Barrier 优先处理） */
     private final PrioritizedDeque<InputChannel> inputChannelsWithData = new PrioritizedDeque<>();
 
     /**
      * Field guaranteeing uniqueness for inputChannelsWithData queue. Both of those fields should be
      * unified onto one.
+     * 【注释】标记哪些 Channel 已在有数据队列中，防止重复入队
      */
     @GuardedBy("inputChannelsWithData")
     private final BitSet enqueuedInputChannelsWithData;
 
+    /** 【注释】标记哪些 Channel 已收到 EndOfPartition 事件 */
     @GuardedBy("inputChannelsWithData")
     private final BitSet channelsWithEndOfPartitionEvents;
 
+    /** 【注释】标记哪些 Channel 已收到 EndOfData（用户数据结束）事件 */
     @GuardedBy("inputChannelsWithData")
     private final BitSet channelsWithEndOfUserRecords;
 

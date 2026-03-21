@@ -56,7 +56,26 @@ import java.util.TimerTask;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** An input channel, which requests a local subpartition. */
+/**
+ * An input channel, which requests a local subpartition.
+ *
+ * <p>【学习型注释】
+ * LocalInputChannel 是本地输入通道，用于同一 TaskManager 内的上下游 Task 数据交换。
+ * 相比 RemoteInputChannel，无需网络传输，性能更高。
+ *
+ * <p>数据传输原理：
+ * 上下游 Task 共享同一 ResultPartitionManager，LocalInputChannel 直接获取
+ * ResultSubpartitionView 的引用，通过内存访问读取 Buffer。
+ *
+ * <p>与 RemoteInputChannel 的差异：
+ * - 无网络开销，零拷贝（直接引用内存）
+ * - 无需 Credit-based 流量控制（共享内存池自动背压）
+ * - 更简单的实现，更低的延迟
+ *
+ * <p>调度器部署优化：
+ * Flink 调度器尽量将上下游 Task 部署在同一 TaskManager，
+ * 以最大化使用 LocalInputChannel，减少网络开销。
+ */
 public class LocalInputChannel extends InputChannel implements BufferAvailabilityListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(LocalInputChannel.class);
@@ -65,19 +84,22 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 
     private final Object requestLock = new Object();
 
-    /** The local partition manager. */
+    /** The local partition manager. 【注释】本地分区管理器，管理同一 TM 的所有 ResultPartition */
     private final ResultPartitionManager partitionManager;
 
-    /** Task event dispatcher for backwards events. */
+    /** Task event dispatcher for backwards events. 【注释】Task 事件发布器，用于反向事件传递 */
     private final TaskEventPublisher taskEventPublisher;
 
-    /** The consumed subpartition. */
+    /** The consumed subpartition. 【注释】消费的子分区视图，直接内存访问 */
     @Nullable private volatile ResultSubpartitionView subpartitionView;
 
+    /** 【注释】通道是否已释放 */
     private volatile boolean isReleased;
 
+    /** 【注释】通道状态持久化器，用于 Checkpoint */
     private final ChannelStatePersister channelStatePersister;
 
+    /** 【注释】待消费的 Buffer 队列 */
     private final Deque<BufferAndBacklog> toBeConsumedBuffers = new ArrayDeque<>();
 
     public LocalInputChannel(
