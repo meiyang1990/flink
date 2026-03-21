@@ -67,21 +67,66 @@ import static org.apache.flink.util.concurrent.FutureUtils.assertNoException;
  * <p>To ensure this contract, the implementation eagerly fetches additional memory segments from
  * {@link NetworkBufferPool} as long as it hasn't reached {@link #maxNumberOfMemorySegments} or one
  * subpartition reached the quota.
+ *
+ * <p>【学习型注释】LocalBufferPool 是两级缓冲池架构中的本地缓冲池，为单个 Task 提供缓冲区管理。
+ *
+ * <h2>设计目的</h2>
+ * <ul>
+ *   <li>隔离不同 Task 的缓冲区使用，防止单个 Task 耗尽全局缓冲区</li>
+ *   <li>实现细粒度的背压控制（每个 Channel 的缓冲区配额）</li>
+ *   <li>支持动态调整缓冲池大小（根据 Task 数量动态分配）</li>
+ * </ul>
+ *
+ * <h2>两级缓冲池架构</h2>
+ * <pre>
+ *                  NetworkBufferPool（全局）
+ *                     /    |    \
+ *       LocalBufferPool  LocalBufferPool  LocalBufferPool
+ *         (Task1)          (Task2)          (Task3)
+ * </pre>
+ *
+ * <h2>关键参数</h2>
+ * <ul>
+ *   <li>numberOfRequiredMemorySegments：最小保证缓冲区数（必须满足）</li>
+ *   <li>maxNumberOfMemorySegments：最大缓冲区数（弹性上限）</li>
+ *   <li>maxBuffersPerChannel：每个 Channel 的缓冲区配额（防止单 Channel 独占）</li>
+ *   <li>maxOverdraftBuffersPerGate：允许的透支缓冲区数（应对突发流量）</li>
+ * </ul>
+ *
+ * <h2>可用性定义</h2>
+ * 可用性（Availability）表示能否立即获取到非透支的缓冲区，需满足：
+ * <ol>
+ *   <li>availableMemorySegments 队列非空</li>
+ *   <li>没有 Subpartition 达到 maxBuffersPerChannel 上限</li>
+ * </ol>
+ *
+ * <h2>线程安全</h2>
+ * 所有操作通过 synchronized(availableMemorySegments) 保护。
  */
 public class LocalBufferPool implements BufferPool {
     private static final Logger LOG = LoggerFactory.getLogger(LocalBufferPool.class);
 
+    /** 未知 Channel 标识，表示缓冲区请求不与特定 Channel 关联 */
     private static final int UNKNOWN_CHANNEL = -1;
 
+    /**
+     * 全局网络缓冲池的引用，所有本地缓冲池从这里获取底层 MemorySegment。
+     */
     /** Global network buffer pool to get buffers from. */
     private final NetworkBufferPool networkBufferPool;
 
+    /**
+     * 本地缓冲池的最小保证缓冲区数量。
+     * 这个数量必须被满足，否则 Task 无法正常启动。
+     */
     /** The minimum number of required segments for this pool. */
     private final int numberOfRequiredMemorySegments;
 
     /**
-     * The currently available memory segments. These are segments, which have been requested from
-     * the network buffer pool and are currently not handed out as Buffer instances.
+     * 当前可用的内存段队列。这些是已从全局缓冲池申请，但尚未被使用的缓冲区。
+     *
+     * <p>【注意】该对象同时作为同步锁使用，保护所有状态修改操作。
+     * 需要特别注意与外部锁的交互，避免死锁（如 BufferManager#bufferQueue）。
      *
      * <p><strong>BEWARE:</strong> Take special care with the interactions between this lock and
      * locks acquired before entering this class vs. locks being acquired during calls to external
@@ -92,18 +137,31 @@ public class LocalBufferPool implements BufferPool {
     private final ArrayDeque<MemorySegment> availableMemorySegments = new ArrayDeque<>();
 
     /**
+     * 缓冲区可用性监听器队列。当缓冲池为空时，消费者可以注册监听器等待缓冲区可用通知。
+     * 实现了"推"模式的背压通知机制。
+     */
+    /**
      * Buffer availability listeners, which need to be notified when a Buffer becomes available.
      * Listeners can only be registered at a time/state where no Buffer instance was available.
      */
     private final ArrayDeque<BufferListener> registeredListeners = new ArrayDeque<>();
 
+    /**
+     * 本地缓冲池能够申请的最大缓冲区数量（弹性上限）。
+     */
     /** Maximum number of network buffers to allocate. */
     private final int maxNumberOfMemorySegments;
 
+    /**
+     * 当前缓冲池的大小，可在 [numberOfRequiredMemorySegments, maxNumberOfMemorySegments] 范围内动态调整。
+     */
     /** The current size of this pool. */
     @GuardedBy("availableMemorySegments")
     private int currentPoolSize;
 
+    /**
+     * 已从全局缓冲池申请的缓冲区总数，包括正在使用的和 availableMemorySegments 中的。
+     */
     /**
      * Number of all memory segments, which have been requested from the network buffer pool and are
      * somehow referenced through this pool (e.g. wrapped in Buffer instances or as available
@@ -112,24 +170,54 @@ public class LocalBufferPool implements BufferPool {
     @GuardedBy("availableMemorySegments")
     private int numberOfRequestedMemorySegments;
 
+    /**
+     * 每个 Channel 的最大缓冲区数量配额。
+     * 用于防止单个 Channel 独占缓冲池资源，实现公平的背压控制。
+     */
     private final int maxBuffersPerChannel;
 
+    /**
+     * 每个 Subpartition 当前使用的缓冲区计数数组。
+     * 数组长度等于 Subpartition 数量，索引 i 表示第 i 个 Subpartition 的缓冲区数。
+     */
     @GuardedBy("availableMemorySegments")
     private final int[] subpartitionBuffersCount;
 
+    /**
+     * 每个 Subpartition 对应的缓冲区回收器。
+     * 当 Buffer 被回收时，回收器会更新对应 Subpartition 的计数。
+     */
     private final BufferRecycler[] subpartitionBufferRecyclers;
 
+    /**
+     * 当前不可用的 Subpartition 数量（已达到 maxBuffersPerChannel 上限）。
+     * 当所有 Subpartition 都可用时值为 0。
+     */
     @GuardedBy("availableMemorySegments")
     private int unavailableSubpartitionsCount = 0;
 
+    /**
+     * 每个 Gate 允许的透支缓冲区数量。
+     * 透支缓冲区允许 Task 在突发流量时临时超出 currentPoolSize 限制。
+     */
     private int maxOverdraftBuffersPerGate;
 
+    /**
+     * 缓冲池是否已销毁的标志。销毁后不能再申请新的缓冲区。
+     */
     @GuardedBy("availableMemorySegments")
     private boolean isDestroyed;
 
+    /**
+     * 可用性辅助器，管理缓冲池的可用性状态和 CompletableFuture 通知机制。
+     */
     @GuardedBy("availableMemorySegments")
     private final AvailabilityHelper availabilityHelper = new AvailabilityHelper();
 
+    /**
+     * 标记本地缓冲池是否已注册等待全局缓冲池可用的通知。
+     * 用于避免重复注册监听器。
+     */
     /**
      * Indicates whether this {@link LocalBufferPool} has requested to be notified on the next time
      * that global pool becoming available, so it can then request buffer from the global pool.
@@ -389,6 +477,17 @@ public class LocalBufferPool implements BufferPool {
         return segment;
     }
 
+    /**
+     * 请求一个内存段用于指定的 Channel。
+     *
+     * <p>【学习型注释】缓冲区请求流程：
+     * <ol>
+     *   <li>首先尝试从 availableMemorySegments 获取</li>
+     *   <li>如果为空但已达到 currentPoolSize，尝试请求透支缓冲区</li>
+     *   <li>更新目标 Channel 的缓冲区计数（如果指定了 Channel）</li>
+     *   <li>检查并更新可用性状态</li>
+     * </ol>
+     */
     @Nullable
     private MemorySegment requestMemorySegment(int targetChannel) {
         MemorySegment segment = null;
@@ -576,6 +675,18 @@ public class LocalBufferPool implements BufferPool {
         recycle(segment, UNKNOWN_CHANNEL);
     }
 
+    /**
+     * 回收缓冲区到缓冲池。
+     *
+     * <p>【学习型注释】缓冲区回收流程：
+     * <ol>
+     *   <li>更新对应 Channel 的缓冲区计数</li>
+     *   <li>如果缓冲池已销毁或有多余缓冲区，直接归还给全局缓冲池</li>
+     *   <li>否则，检查是否有等待的 BufferListener 需要通知</li>
+     *   <li>如果有监听器，直接将缓冲区传递给监听器（避免入队再出队）</li>
+     *   <li>如果没有监听器，将缓冲区放入 availableMemorySegments 队列</li>
+     * </ol>
+     */
     private void recycle(MemorySegment segment, int channel) {
         BufferListener listener;
         CompletableFuture<?> toNotify = null;
@@ -617,6 +728,18 @@ public class LocalBufferPool implements BufferPool {
         return listener.notifyBufferAvailable(new NetworkBuffer(segment, this));
     }
 
+    /**
+     * Destroy is called after the produce or consume phase of a task finishes.
+     *
+     * <p>【学习型注释】延迟销毁缓冲池。
+     * <ul>
+     *   <li>将所有可用缓冲区归还给全局缓冲池</li>
+     *   <li>通知所有等待的 BufferListener 缓冲池已销毁</li>
+     *   <li>标记 isDestroyed = true，后续请求会抛出 CancelTaskException</li>
+     *   <li>从 NetworkBufferPool 注销本地缓冲池</li>
+     * </ul>
+     * "延迟"体现在：已分发出去的缓冲区会在回收时再归还，而非立即强制回收。
+     */
     /** Destroy is called after the produce or consume phase of a task finishes. */
     @Override
     public void lazyDestroy() {
@@ -781,15 +904,24 @@ public class LocalBufferPool implements BufferPool {
     /**
      * This class represents the buffer pool's current ground-truth availability and whether to
      * request buffer from global pool when it is available.
+     *
+     * <p>【学习型注释】缓冲池可用性状态枚举。
+     * <ul>
+     *   <li>AVAILABLE：缓冲池可用，可以立即获取缓冲区</li>
+     *   <li>UNAVAILABLE_NEED_REQUESTING_NOTIFICATION：不可用，需要注册监听全局缓冲池</li>
+     *   <li>UNAVAILABLE_NEED_NOT_REQUESTING_NOTIFICATION：不可用，但无需注册监听（已达上限）</li>
+     * </ul>
      */
     private enum AvailabilityStatus {
         AVAILABLE(true, false),
         UNAVAILABLE_NEED_REQUESTING_NOTIFICATION(false, true),
         UNAVAILABLE_NEED_NOT_REQUESTING_NOTIFICATION(false, false);
 
+        /** 标识缓冲池当前是否可用 */
         /** Indicates whether the {@link LocalBufferPool} is currently available. */
         private final boolean available;
 
+        /** 标识是否需要注册监听全局缓冲池可用事件 */
         /**
          * Indicates whether to requesting notification of global pool when it becomes available.
          */

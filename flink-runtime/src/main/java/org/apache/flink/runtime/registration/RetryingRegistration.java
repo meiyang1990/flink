@@ -44,6 +44,38 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * registration can be canceled, for example when the target where it tries to register at loses
  * leader status.
  *
+ * <p>【学习型注释】RetryingRegistration 实现了组件间的重试注册机制，是 Flink 容错设计的重要组成部分。
+ *
+ * <h2>典型使用场景</h2>
+ * <ul>
+ *   <li>TaskExecutor 向 ResourceManager 注册</li>
+ *   <li>TaskExecutor 向 JobMaster 注册</li>
+ *   <li>JobMaster 向 ResourceManager 注册</li>
+ * </ul>
+ *
+ * <h2>核心特性</h2>
+ * <ul>
+ *   <li><b>地址解析</b>：通过 RpcService 将目标地址解析为 RpcGateway</li>
+ *   <li><b>超时重试</b>：支持指数退避的超时重试策略</li>
+ *   <li><b>失败重试</b>：连接失败或注册被拒绝时自动重试</li>
+ *   <li><b>可取消</b>：支持通过 cancel() 取消正在进行的注册</li>
+ * </ul>
+ *
+ * <h2>重试策略</h2>
+ * <ol>
+ *   <li>初始超时时间较短（快速检测可用性）</li>
+ *   <li>每次超时后，超时时间翻倍，直到达到最大超时</li>
+ *   <li>发生错误时，固定延迟后重试</li>
+ *   <li>被拒绝时，固定延迟后重试（可能是 Leader 变更）</li>
+ * </ol>
+ *
+ * <h2>状态转换</h2>
+ * <pre>
+ * startRegistration() → 地址解析 → register() → 成功/拒绝/失败
+ *                          ↓                        ↓
+ *                      重试（错误延迟）          重试（拒绝延迟）
+ * </pre>
+ *
  * @param <F> The type of the fencing token
  * @param <G> The type of the gateway to connect to.
  * @param <S> The type of the successful registration responses.
@@ -59,22 +91,40 @@ public abstract class RetryingRegistration<
     // Fields
     // ------------------------------------------------------------------------
 
+    /** 日志记录器，由子类提供 */
     private final Logger log;
 
+    /** RPC 服务，用于连接远程 Gateway */
     private final RpcService rpcService;
 
+    /** 注册目标名称（用于日志），如 "ResourceManager" */
     private final String targetName;
 
+    /** 目标 Gateway 的类型 */
     private final Class<G> targetType;
 
+    /** 目标 RPC 地址 */
     private final String targetAddress;
 
+    /**
+     * 围栏令牌，用于 FencedRpcGateway。
+     * 确保只与正确的 Leader 通信，防止脑裂场景下的消息错发。
+     */
     private final F fencingToken;
 
+    /**
+     * 注册完成的 Future，包含注册结果（成功/拒绝）。
+     */
     private final CompletableFuture<RetryingRegistrationResult<G, S, R>> completionFuture;
 
+    /**
+     * 重试注册的配置参数（初始超时、最大超时、错误延迟、拒绝延迟等）。
+     */
     private final RetryingRegistrationConfiguration retryingRegistrationConfiguration;
 
+    /**
+     * 取消标志，volatile 保证多线程可见性。
+     */
     private volatile boolean canceled;
 
     // ------------------------------------------------------------------------
@@ -132,6 +182,18 @@ public abstract class RetryingRegistration<
     /**
      * This method resolves the target address to a callable gateway and starts the registration
      * after that.
+     *
+     * <p>【学习型注释】启动注册流程。这是注册的入口方法。
+     *
+     * <p>流程：
+     * <ol>
+     *   <li>检查是否已取消</li>
+     *   <li>通过 RpcService 将目标地址解析为 RpcGateway</li>
+     *   <li>解析成功后，开始实际的注册尝试（调用 register 方法）</li>
+     *   <li>解析失败时，延迟后重试地址解析</li>
+     * </ol>
+     *
+     * <p>特殊处理：如果目标是 FencedRpcGateway，连接时会携带围栏令牌。
      */
     @SuppressWarnings("unchecked")
     public void startRegistration() {
@@ -204,6 +266,19 @@ public abstract class RetryingRegistration<
     /**
      * This method performs a registration attempt and triggers either a success notification or a
      * retry, depending on the result.
+     *
+     * <p>【学习型注释】执行单次注册尝试。根据结果决定是完成注册还是重试。
+     *
+     * <p>注册结果处理：
+     * <ul>
+     *   <li><b>Success</b>：注册成功，完成 completionFuture</li>
+     *   <li><b>Rejection</b>：被拒绝（如 Leader 变更），完成 Future 但标记为拒绝</li>
+     *   <li><b>Failure</b>：失败，延迟后以初始超时重新开始注册</li>
+     *   <li><b>Timeout</b>：超时，超时时间翻倍后立即重试</li>
+     *   <li><b>Exception</b>：异常，延迟后重试</li>
+     * </ul>
+     *
+     * <p>超时策略：初始超时 → 2×超时 → 4×超时 → ... → 最大超时
      */
     @SuppressWarnings("unchecked")
     private void register(final G gateway, final int attempt, final long timeoutMillis) {
@@ -343,11 +418,23 @@ public abstract class RetryingRegistration<
                 .schedule(this::startRegistration, delay, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * 注册结果封装类，表示注册成功或被拒绝。
+     *
+     * <p>【学习型注释】使用工厂方法 success() 和 rejection() 创建实例。
+     * <ul>
+     *   <li>成功时：gateway 和 success 非空，rejection 为空</li>
+     *   <li>被拒绝时：rejection 非空，gateway 和 success 为空</li>
+     * </ul>
+     */
     static final class RetryingRegistrationResult<G, S, R> {
+        /** 成功时的 RPC Gateway 引用 */
         @Nullable private final G gateway;
 
+        /** 成功响应内容 */
         @Nullable private final S success;
 
+        /** 拒绝响应内容 */
         @Nullable private final R rejection;
 
         private RetryingRegistrationResult(
