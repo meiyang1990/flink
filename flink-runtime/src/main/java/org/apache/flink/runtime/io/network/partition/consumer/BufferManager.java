@@ -48,25 +48,77 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * The general buffer manager used by {@link InputChannel} to request/recycle exclusive or floating
  * buffers.
+ *
+ * <p>InputChannel 使用的通用缓冲区管理器，负责请求和回收独占缓冲区（exclusive）和浮动缓冲区（floating）。
+ *
+ * <h2>缓冲区类型</h2>
+ * <ul>
+ *   <li><b>独占缓冲区（Exclusive Buffer）</b>：从全局 {@link MemorySegmentProvider} 分配，
+ *       每个 Channel 独享，不参与缓冲池的动态调整，主要用于保证最小吞吐量</li>
+ *   <li><b>浮动缓冲区（Floating Buffer）</b>：从本地 {@link BufferPool} 动态请求，
+ *       多个 Channel 共享，用于处理流量波动</li>
+ * </ul>
+ *
+ * <h2>Credit-based 流量控制集成</h2>
+ * <p>BufferManager 是 Credit-based 流量控制的关键组件：
+ * <ul>
+ *   <li>通过 numRequiredBuffers 控制需要的缓冲区数量</li>
+ *   <li>当缓冲区不足时注册为 BufferListener，等待缓冲区可用</li>
+ *   <li>缓冲区数量变化时通知 InputChannel 更新 Credit</li>
+ * </ul>
+ *
+ * <h2>缓冲区优先级</h2>
+ * <p>消费时优先使用浮动缓冲区（{@link AvailableBufferQueue#takeBuffer()}），
+ * 因为独占缓冲区是保底资源，应该尽量保留。
+ *
+ * <h2>线程安全说明</h2>
+ * <ul>
+ *   <li>bufferQueue 对象同时作为锁和数据结构</li>
+ *   <li>回收操作可能来自任意线程</li>
+ *   <li>为避免死锁，资源回收总是在锁外执行</li>
+ * </ul>
+ *
+ * <h2>典型使用场景</h2>
+ * <pre>
+ * RemoteInputChannel:
+ *   1. requestExclusiveBuffers() - 初始化时分配独占缓冲区
+ *   2. requestFloatingBuffers() - 收到 backlog 后请求浮动缓冲区
+ *   3. requestBuffer() / requestBufferBlocking() - 获取缓冲区接收数据
+ *   4. recycle() - 数据处理完成后回收缓冲区
+ * </pre>
+ *
+ * @see InputChannel
+ * @see RemoteInputChannel
+ * @see BufferListener
  */
 public class BufferManager implements BufferListener, BufferRecycler {
 
-    /** The available buffer queue wraps both exclusive and requested floating buffers. */
+    /**
+     * 可用缓冲区队列，封装了独占缓冲区和浮动缓冲区的管理逻辑。
+     * 同时作为同步锁使用。
+     */
     private final AvailableBufferQueue bufferQueue = new AvailableBufferQueue();
 
-    /** The buffer provider for requesting exclusive buffers. */
+    /**
+     * 全局内存段提供者，用于请求和回收独占缓冲区。
+     * 通常由 NetworkBufferPool 实现。
+     */
     private final MemorySegmentProvider globalPool;
 
-    /** The input channel to own this buffer manager. */
+    /** 拥有此 BufferManager 的 InputChannel */
     private final InputChannel inputChannel;
 
     /**
-     * The tag indicates whether it is waiting for additional floating buffers from the buffer pool.
+     * 标记当前是否正在等待浮动缓冲区。
+     * 当从 BufferPool 请求缓冲区失败并注册为 listener 时设为 true。
      */
     @GuardedBy("bufferQueue")
     private boolean isWaitingForFloatingBuffers;
 
-    /** The total number of required buffers for the respective input channel. */
+    /**
+     * 该 InputChannel 需要的缓冲区总数。
+     * 由 Credit-based 流量控制根据上游 backlog 动态调整。
+     */
     @GuardedBy("bufferQueue")
     private int numRequiredBuffers;
 
@@ -80,9 +132,17 @@ public class BufferManager implements BufferListener, BufferRecycler {
     }
 
     // ------------------------------------------------------------------------
-    // Buffer request
+    // Buffer request（缓冲区请求）
     // ------------------------------------------------------------------------
 
+    /**
+     * 非阻塞请求一个缓冲区。
+     *
+     * <p>优先返回浮动缓冲区，其次是独占缓冲区。
+     * 同时减少 numRequiredBuffers，避免后续分配过多缓冲区。
+     *
+     * @return 可用缓冲区，如果没有可用则返回 null
+     */
     @Nullable
     Buffer requestBuffer() {
         synchronized (bufferQueue) {
@@ -93,6 +153,20 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
     }
 
+    /**
+     * 阻塞请求一个缓冲区。
+     *
+     * <p>如果队列中没有可用缓冲区，会：
+     * <ol>
+     *   <li>检查 Channel 是否已释放</li>
+     *   <li>尝试从 BufferPool 请求浮动缓冲区</li>
+     *   <li>如果请求失败，注册为 BufferListener 并等待</li>
+     * </ol>
+     *
+     * @return 请求到的缓冲区
+     * @throws InterruptedException 如果等待被中断
+     * @throws CancelTaskException 如果 Channel 已释放或 BufferPool 已销毁
+     */
     Buffer requestBufferBlocking() throws InterruptedException {
         synchronized (bufferQueue) {
             Buffer buffer;
@@ -132,7 +206,15 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
     }
 
-    /** Requests exclusive buffers from the provider. */
+    /**
+     * 从全局缓冲池请求独占缓冲区。
+     *
+     * <p>独占缓冲区在 Channel 初始化时分配，生命周期与 Channel 相同。
+     * 这些缓冲区保证了 Channel 的最小吞吐量，不会被其他 Channel 借用。
+     *
+     * @param numExclusiveBuffers 需要的独占缓冲区数量
+     * @throws IOException 如果分配失败
+     */
     void requestExclusiveBuffers(int numExclusiveBuffers) throws IOException {
         checkArgument(numExclusiveBuffers >= 0, "Num exclusive buffers must be non-negative.");
         if (numExclusiveBuffers == 0) {
@@ -157,9 +239,17 @@ public class BufferManager implements BufferListener, BufferRecycler {
     }
 
     /**
-     * Requests floating buffers from the buffer pool based on the given required amount, and
-     * returns the actual requested amount. If the required amount is not fully satisfied, it will
-     * register as a listener.
+     * 根据需求数量请求浮动缓冲区。
+     *
+     * <p>这是 Credit-based 流量控制的核心方法：
+     * <ol>
+     *   <li>设置 numRequiredBuffers 为请求数量</li>
+     *   <li>尝试从 BufferPool 请求缓冲区</li>
+     *   <li>如果 BufferPool 无法满足，注册为 listener 等待通知</li>
+     * </ol>
+     *
+     * @param numRequired 需要的缓冲区数量（通常等于上游 backlog）
+     * @return 实际请求到的缓冲区数量
      */
     int requestFloatingBuffers(int numRequired) {
         int numRequestedBuffers = 0;
@@ -197,14 +287,18 @@ public class BufferManager implements BufferListener, BufferRecycler {
     }
 
     // ------------------------------------------------------------------------
-    // Buffer recycle
+    // Buffer recycle（缓冲区回收）
     // ------------------------------------------------------------------------
 
     /**
-     * Exclusive buffer is recycled to this channel manager directly and it may trigger return extra
-     * floating buffer based on <tt>numRequiredBuffers</tt>.
+     * 回收独占缓冲区。
      *
-     * @param segment The exclusive segment of this channel.
+     * <p>独占缓冲区回收到当前 BufferManager，可能触发浮动缓冲区的释放：
+     * 当可用缓冲区数量超过需求时，会释放多余的浮动缓冲区回 BufferPool。
+     *
+     * <p>这种设计确保了独占缓冲区的优先级，同时避免了资源浪费。
+     *
+     * @param segment 要回收的独占内存段
      */
     @Override
     public void recycle(MemorySegment segment) {
@@ -252,7 +346,18 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
     }
 
-    /** Recycles all the exclusive and floating buffers from the given buffer queue. */
+    /**
+     * 释放所有缓冲区（独占和浮动）。
+     *
+     * <p>释放策略：
+     * <ul>
+     *   <li>浮动缓冲区：直接回收到 LocalBufferPool</li>
+     *   <li>独占缓冲区：收集后批量回收到全局缓冲池，避免触发不必要的缓冲区重分配</li>
+     * </ul>
+     *
+     * @param buffers 要释放的缓冲区队列
+     * @throws IOException 如果释放过程中发生错误
+     */
     void releaseAllBuffers(ArrayDeque<Buffer> buffers) throws IOException {
         // Gather all exclusive buffers and recycle them to global pool in batch, because
         // we do not want to trigger redistribution of buffers after each recycle.
@@ -292,16 +397,25 @@ public class BufferManager implements BufferListener, BufferRecycler {
     }
 
     // ------------------------------------------------------------------------
-    // Buffer listener notification
+    // Buffer listener notification（缓冲区监听器通知）
     // ------------------------------------------------------------------------
 
     /**
-     * The buffer pool notifies this listener of an available floating buffer. If the listener is
-     * released or currently does not need extra buffers, the buffer should be returned to the
-     * buffer pool. Otherwise, the buffer will be added into the <tt>bufferQueue</tt>.
+     * BufferPool 通知有浮动缓冲区可用时的回调。
      *
-     * @param buffer Buffer that becomes available in buffer pool.
-     * @return true if the buffer is accepted by this listener.
+     * <p>处理逻辑：
+     * <ol>
+     *   <li>检查 Channel 是否已释放（避免死锁）</li>
+     *   <li>检查是否仍需要更多缓冲区</li>
+     *   <li>将缓冲区加入队列并尝试请求更多</li>
+     *   <li>通知 InputChannel 有新缓冲区可用</li>
+     * </ol>
+     *
+     * <p>死锁避免：在锁外检查 isReleased 状态，因为 releaseAllResources
+     * 和 notifyBufferAvailable 可能在不同线程中并发调用。
+     *
+     * @param buffer 可用的缓冲区
+     * @return true 如果缓冲区被接受使用
      */
     @Override
     public boolean notifyBufferAvailable(Buffer buffer) {
@@ -395,15 +509,21 @@ public class BufferManager implements BufferListener, BufferRecycler {
     }
 
     /**
-     * Manages the exclusive and floating buffers of this channel, and handles the internal buffer
-     * related logic.
+     * 管理该 Channel 的独占缓冲区和浮动缓冲区，并处理内部缓冲区相关逻辑。
+     *
+     * <p>核心设计：
+     * <ul>
+     *   <li>独占缓冲区：Channel 专属，生命周期与 Channel 一致</li>
+     *   <li>浮动缓冲区：从 BufferPool 动态借用，可能被释放回 BufferPool</li>
+     *   <li>消费优先级：优先消费浮动缓冲区，保留独占缓冲区作为保底</li>
+     * </ul>
      */
     static final class AvailableBufferQueue {
 
-        /** The current available floating buffers from the fixed buffer pool. */
+        /** 从本地 BufferPool 请求的浮动缓冲区队列 */
         final ArrayDeque<Buffer> floatingBuffers;
 
-        /** The current available exclusive buffers from the global buffer pool. */
+        /** 从全局 NetworkBufferPool 分配的独占缓冲区队列 */
         final ArrayDeque<Buffer> exclusiveBuffers;
 
         AvailableBufferQueue() {
@@ -412,15 +532,15 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
 
         /**
-         * Adds an exclusive buffer (back) into the queue and releases one floating buffer if the
-         * number of available buffers in queue is more than the required amount. If floating buffer
-         * is released, the total amount of available buffers after adding this exclusive buffer has
-         * not changed, and no new buffers are available. The caller is responsible for recycling
-         * the release/returned floating buffer.
+         * 添加独占缓冲区到队列。
          *
-         * @param buffer The exclusive buffer to add
-         * @param numRequiredBuffers The number of required buffers
-         * @return An released floating buffer, may be null if the numRequiredBuffers is not met.
+         * <p>如果添加后可用缓冲区数量超过需求，会释放一个浮动缓冲区。
+         * 这确保了独占缓冲区的优先级：当独占缓冲区回收时，多余的浮动缓冲区
+         * 可以归还给 BufferPool 供其他 Channel 使用。
+         *
+         * @param buffer 要添加的独占缓冲区
+         * @param numRequiredBuffers 当前需要的缓冲区数量
+         * @return 被释放的浮动缓冲区，调用者负责回收；如果不需要释放则返回 null
          */
         @Nullable
         Buffer addExclusiveBuffer(Buffer buffer, int numRequiredBuffers) {
@@ -436,10 +556,12 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
 
         /**
-         * Takes the floating buffer first in order to make full use of floating buffers reasonably.
+         * 获取一个可用缓冲区。
          *
-         * @return An available floating or exclusive buffer, may be null if the channel is
-         *     released.
+         * <p>优先返回浮动缓冲区，以充分利用动态分配的资源，
+         * 保留独占缓冲区作为保底。
+         *
+         * @return 可用缓冲区，如果 Channel 已释放则返回 null
          */
         @Nullable
         Buffer takeBuffer() {
@@ -451,10 +573,15 @@ public class BufferManager implements BufferListener, BufferRecycler {
         }
 
         /**
-         * The floating buffer is recycled to local buffer pool directly, and the exclusive buffer
-         * will be gathered to return to global buffer pool later.
+         * 释放所有缓冲区。
          *
-         * @param exclusiveSegments The list that we will add exclusive segments into.
+         * <p>释放策略不同：
+         * <ul>
+         *   <li>浮动缓冲区：直接回收到 BufferPool</li>
+         *   <li>独占缓冲区：只提取 MemorySegment 加入列表，由调用者批量回收到全局池</li>
+         * </ul>
+         *
+         * @param exclusiveSegments 用于收集独占缓冲区的内存段列表
          */
         void releaseAll(List<MemorySegment> exclusiveSegments) {
             Buffer buffer;
