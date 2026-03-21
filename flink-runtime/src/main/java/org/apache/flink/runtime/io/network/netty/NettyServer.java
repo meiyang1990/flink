@@ -206,9 +206,13 @@ class NettyServer {
         LOG.info("Successful shutdown (took {} ms).", duration);
     }
 
+    /**
+     * 初始化 NIO 模式的 Bootstrap
+     *
+     * <p>使用 Java NIO Selector 机制，适用于所有平台
+     */
     private void initNioBootstrap() {
-        // Add the server port number to the name in order to distinguish
-        // multiple servers running on the same host.
+        // 线程组名称包含端口范围，便于区分同一主机上运行的多个服务端
         String name =
                 NettyConfig.SERVER_THREAD_GROUP_NAME + " (" + config.getServerPortRange() + ")";
 
@@ -220,9 +224,13 @@ class NettyServer {
         bootstrap.group(nioGroup).channel(NioServerSocketChannel.class);
     }
 
+    /**
+     * 初始化 EPOLL 模式的 Bootstrap（Linux 专用）
+     *
+     * <p>EPOLL 优势：边缘触发、更高效的事件通知
+     */
     private void initEpollBootstrap() {
-        // Add the server port number to the name in order to distinguish
-        // multiple servers running on the same host.
+        // 线程组名称包含端口范围
         String name =
                 NettyConfig.SERVER_THREAD_GROUP_NAME + " (" + config.getServerPortRange() + ")";
 

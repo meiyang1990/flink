@@ -144,12 +144,18 @@ class NettyClient {
         LOG.info("Successful shutdown (took {} ms).", duration);
     }
 
+    /**
+     * 初始化 NIO 模式的 Bootstrap
+     *
+     * <p>NIO 模式使用 Java NIO 的 Selector 机制，适用于所有平台
+     * TCP KeepAlive 参数需要通过反射设置 JDK ExtendedSocketOptions
+     */
     private void initNioBootstrap() {
-        // Add the server port number to the name in order to distinguish
-        // multiple clients running on the same host.
+        // 线程组名称包含端口范围，便于区分同一主机上运行的多个客户端
         String name =
                 NettyConfig.CLIENT_THREAD_GROUP_NAME + " (" + config.getServerPortRange() + ")";
 
+        // 创建多线程 EventLoop 组，处理 I/O 事件
         MultiThreadIoEventLoopGroup nioGroup =
                 new MultiThreadIoEventLoopGroup(
                         config.getClientNumThreads(),
@@ -157,6 +163,7 @@ class NettyClient {
                         NioIoHandler.newFactory());
         bootstrap.group(nioGroup).channel(NioSocketChannel.class);
 
+        // 配置 TCP KeepAlive 参数（需要 JDK 11+ 支持）
         config.getTcpKeepIdleInSeconds()
                 .ifPresent(idle -> setNioKeepaliveOptions(NIO_TCP_KEEPIDLE_KEY, idle));
         config.getTcpKeepInternalInSeconds()
