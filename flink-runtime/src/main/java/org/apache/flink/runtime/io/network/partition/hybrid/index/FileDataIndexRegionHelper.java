@@ -24,11 +24,26 @@ import java.nio.channels.FileChannel;
 /**
  * {@link FileDataIndexRegionHelper} is responsible for writing a {@link Region} to the file or
  * reading a {@link Region} from file.
+ *
+ * <h2>核心设计概述</h2>
+ *
+ * <p>该接口定义了索引区域（Region）的序列化和反序列化策略，是索引持久化的核心抽象。
+ * 不同的索引实现可以有不同的 Region 格式，通过实现此接口来支持自定义的读写逻辑。
+ *
+ * <h2>职责分离</h2>
+ *
+ * <ul>
+ *   <li><b>FileDataIndexCache</b>：负责内存缓存管理和 LRU 淘汰策略
+ *   <li><b>FileDataIndexRegionHelper</b>：负责 Region 的序列化格式定义
+ *   <li><b>FileDataIndexSpilledRegionManager</b>：负责磁盘文件的组织结构
+ * </ul>
+ *
+ * @param <T> Region 的具体类型
  */
 public interface FileDataIndexRegionHelper<T extends FileDataIndexRegionHelper.Region> {
 
     /**
-     * Write the region to the file.
+     * 将索引区域写入文件。
      *
      * @param channel the file channel to write the region
      * @param region the region to be written to the file
@@ -36,7 +51,7 @@ public interface FileDataIndexRegionHelper<T extends FileDataIndexRegionHelper.R
     void writeRegionToFile(FileChannel channel, T region) throws IOException;
 
     /**
-     * Read a region from the file.
+     * 从文件中读取一个索引区域。
      *
      * @param channel the file channel to read the region
      * @param fileOffset the current region data is from this file offset, so start reading the file
@@ -46,47 +61,52 @@ public interface FileDataIndexRegionHelper<T extends FileDataIndexRegionHelper.R
     T readRegionFromFile(FileChannel channel, long fileOffset) throws IOException;
 
     /**
-     * A {@link Region} Represents a series of buffers that are:
+     * 索引区域接口：表示一组在文件中物理连续的 buffer 集合。
      *
+     * <h3>Region 的定义</h3>
+     *
+     * <p>一个 Region 代表一系列满足以下条件的 buffer：
      * <ul>
-     *   <li>From the same subpartition
-     *   <li>Logically (i.e. buffer index) consecutive
-     *   <li>Physically (i.e. offset in the file) consecutive
+     *   <li>来自同一个子分区
+     *   <li>逻辑上（buffer index）连续
+     *   <li>物理上（文件偏移）连续
      * </ul>
      *
-     * <p>The following example illustrates some physically continuous buffers in a file and regions
-     * upon them, where `x-y` denotes buffer from subpartition x with buffer index y, and `()`
-     * denotes a region.
+     * <h3>示例图解</h3>
      *
-     * <p>(1-1, 1-2), (2-1), (2-2, 2-3), (1-5, 1-6), (1-4)
+     * <p>以下示例展示了文件中物理连续的 buffer 及其对应的 Region，
+     * 其中 x-y 表示来自子分区 x、buffer index 为 y 的 buffer，() 表示一个 Region：
      *
-     * <p>Note: The file may not contain all the buffers. E.g., 1-3 is missing in the above example.
+     * <pre>
+     * (1-1, 1-2), (2-1), (2-2, 2-3), (1-5, 1-6), (1-4)
+     * </pre>
      *
-     * <p>Note: Buffers in file may have different orders than their buffer index. E.g., 1-4 comes
-     * after 1-6 in the above example.
-     *
-     * <p>Note: This index may not always maintain the longest possible regions. E.g., 2-1, 2-2, 2-3
-     * are in two separate regions.
+     * <p><b>注意事项：</b>
+     * <ul>
+     *   <li>文件中可能不包含所有 buffer（如上例中缺少 1-3）
+     *   <li>文件中 buffer 的顺序可能与其 index 不同（如 1-4 在 1-6 之后）
+     *   <li>索引不总是维护最长可能的 Region（如 2-1, 2-2, 2-3 被分成了两个 Region）
+     * </ul>
      */
     interface Region {
 
-        /** Get the total size in bytes of this region, including the fields and the buffers. */
+        /** 获取该 Region 的总字节大小（包括头部字段和 buffer 数据）。 */
         int getSize();
 
-        /** Get the first buffer index of this region. */
+        /** 获取该 Region 的首个 buffer index。 */
         int getFirstBufferIndex();
 
-        /** Get the file start offset of this region. */
+        /** 获取该 Region 在文件中的起始偏移量。 */
         long getRegionStartOffset();
 
-        /** Get the file end offset of the region. */
+        /** 获取该 Region 在文件中的结束偏移量。 */
         long getRegionEndOffset();
 
-        /** Get the number of buffers in this region. */
+        /** 获取该 Region 包含的 buffer 数量。 */
         int getNumBuffers();
 
         /**
-         * Whether the current region contain the buffer.
+         * 判断当前 Region 是否包含指定的 buffer。
          *
          * @param bufferIndex the specific buffer index
          */
