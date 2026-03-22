@@ -28,40 +28,30 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * The {@link NettyPayload} represents the payload that will be transferred to netty connection. It
- * could indicate a combination of buffer, buffer index, and its subpartition id, and it could also
- * indicate an error or a segment id.
+ * 【中文说明】NettyPayload 表示通过 Netty 连接传输的数据单元。
+ *
+ * <p>它是一个多态容器，可以携带以下三类信息之一：
+ * <ul>
+ *   <li><b>数据缓冲区 (Buffer)</b>：携带具体的 Shuffle 缓冲区数据、缓冲区索引及子分区 ID。</li>
+ *   <li><b>Segment 标识 (Segment ID)</b>：用于通知 Consumer 新的 Segment 开始。</li>
+ *   <li><b>错误信息 (Throwable)</b>：通知 Consumer 发生了异常。</li>
+ * </ul>
  */
 public class NettyPayload {
 
-    /**
-     * The data buffer. If the buffer is not null, bufferIndex and subpartitionId will be
-     * non-negative, error will be null, segmentId will be -1;
-     */
+    /** Shuffle 缓冲区数据。非空时，bufferIndex 和 subpartitionId 有效。 */
     @Nullable private final Buffer buffer;
 
-    /**
-     * The error information. If the error is not null, buffer will be null, segmentId and
-     * bufferIndex and subpartitionId will be -1.
-     */
+    /** 错误信息。非空时，表示传输层发生异常。 */
     @Nullable private final Throwable error;
 
-    /**
-     * The index of buffer. If the buffer index is non-negative, buffer won't be null, error will be
-     * null, subpartitionId will be non-negative, segmentId will be -1.
-     */
+    /** 缓冲区在 Segment 内的顺序索引。 */
     private final int bufferIndex;
 
-    /**
-     * The id of subpartition. If the subpartition id is non-negative, buffer won't be null, error
-     * will be null, bufferIndex will be non-negative, segmentId will be -1.
-     */
+    /** 子分区 ID。 */
     private final int subpartitionId;
 
-    /**
-     * The id of segment. If the segment id is non-negative, buffer and error will be null,
-     * bufferIndex and subpartitionId will be -1.
-     */
+    /** Segment ID。非负数时表示这是一个 Segment 切换控制消息。 */
     private final int segmentId;
 
     private NettyPayload(
@@ -77,19 +67,23 @@ public class NettyPayload {
         this.segmentId = segmentId;
     }
 
+    /** 创建缓冲区类型的 Payload */
     public static NettyPayload newBuffer(Buffer buffer, int bufferIndex, int subpartitionId) {
         checkState(buffer != null && bufferIndex != -1 && subpartitionId != -1);
         return new NettyPayload(buffer, bufferIndex, subpartitionId, null, -1);
     }
 
+    /** 创建错误类型的 Payload */
     public static NettyPayload newError(Throwable error) {
         return new NettyPayload(null, -1, -1, checkNotNull(error), -1);
     }
 
+    /** 创建 Segment 切换类型的 Payload */
     public static NettyPayload newSegment(int segmentId) {
         checkState(segmentId != -1);
         return new NettyPayload(null, -1, -1, null, segmentId);
     }
+    // ... (后续方法保持不变)
 
     public Optional<Buffer> getBuffer() {
         return buffer != null ? Optional.of(buffer) : Optional.empty();

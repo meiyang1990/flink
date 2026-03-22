@@ -26,27 +26,39 @@ import org.apache.flink.runtime.io.network.partition.hybrid.tiered.tier.TierProd
 
 import java.util.concurrent.CompletableFuture;
 
-/** {@link TieredStorageNettyService} is used to create writers and readers to netty. */
+/**
+ * 【中文说明】TieredStorageNettyService 是分层存储的 Netty 网络服务接口。
+ *
+ * <p>核心职责：
+ * <ul>
+ *   <li>作为 Netty Shuffle 服务的中枢，负责连接 Producer 端代理和 Consumer 端代理。</li>
+ *   <li>为 Producer 端提供注册机制，以便后续建立 Netty 连接 Writer。</li>
+ *   <li>为 Consumer 端提供注册机制，异步获取 Netty 连接 Reader。</li>
+ * </ul>
+ */
 public interface TieredStorageNettyService {
 
     /**
-     * {@link TierProducerAgent} will provide a callback named {@link NettyServiceProducer} to
-     * register to {@link TieredStorageNettyService}.
+     * 【中文说明】注册 Producer 服务。
      *
-     * @param partitionId partition id indicates the unique id of {@link TieredResultPartition}.
-     * @param serviceProducer serviceProducer is a callback from {@link TierProducerAgent} and used
-     *     to register a {@link NettyConnectionWriter} and disconnect the netty connection.
+     * <p>Producer 端代理（如 MemoryTierProducerAgent）通过此回调注册 Netty 服务，
+     * 以便后续创建 NettyConnectionWriter 向 Consumer 推送数据。
+     *
+     * @param partitionId 分区唯一标识
+     * @param serviceProducer Netty 服务生成器回调
      */
     void registerProducer(
             TieredStoragePartitionId partitionId, NettyServiceProducer serviceProducer);
 
     /**
-     * {@link TierConsumerAgent} will register to {@link TieredStorageNettyService} and get a future
-     * of {@link NettyConnectionReader}.
+     * 【中文说明】注册 Consumer 服务，获取异步读取连接。
      *
-     * @param partitionId partition id indicates the unique id of {@link TieredResultPartition}.
-     * @param subpartitionId subpartition id indicates the unique id of subpartition.
-     * @return the future of netty connection reader.
+     * <p>Consumer 端代理（如 MemoryTierConsumerAgent）通过此方法注册，
+     * 获取一个 NettyConnectionReader 的 Future，该 Reader 用于从远端读取 Shuffle 数据。
+     *
+     * @param partitionId 分区唯一标识
+     * @param subpartitionId 子分区唯一标识
+     * @return 异步的 Netty 连接读取器
      */
     CompletableFuture<NettyConnectionReader> registerConsumer(
             TieredStoragePartitionId partitionId, TieredStorageSubpartitionId subpartitionId);
