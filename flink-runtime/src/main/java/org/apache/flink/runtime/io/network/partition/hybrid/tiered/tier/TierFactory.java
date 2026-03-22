@@ -51,7 +51,24 @@ public interface TierFactory {
     /** Creates the master-side agent of a Tier. */
     TierMasterAgent createMasterAgent(TieredStorageResourceRegistry tieredStorageResourceRegistry);
 
-    /** Creates the producer-side agent of a Tier. */
+    /**
+     * Creates the producer-side agent of a Tier.
+     *
+     * <p>【中文说明】创建生产者端代理。用于在 TaskManager 上写入数据。
+     *
+     * <p>参数说明：
+     * <ul>
+     *   <li>numPartitions/numSubpartitions - 分区配置</li>
+     *   <li>dataFileBasePath - 数据文件基础路径（磁盘层使用）</li>
+     *   <li>isBroadcastOnly - 是否为广播模式</li>
+     *   <li>storageMemoryManager - 内存管理器</li>
+     *   <li>nettyService - Netty 网络服务（内存层使用）</li>
+     *   <li>bufferPool - 批处理 Shuffle 读取缓冲池（磁盘层使用）</li>
+     *   <li>bufferCompressor - 可选的压缩器</li>
+     * </ul>
+     *
+     * @return Producer 端代理实例
+     */
     TierProducerAgent createProducerAgent(
             int numPartitions,
             int numSubpartitions,
@@ -67,12 +84,34 @@ public interface TierFactory {
             int maxRequestedBuffer,
             @Nullable BufferCompressor bufferCompressor);
 
-    /** Creates the consumer-side agent of a Tier. */
+    /**
+     * Creates the consumer-side agent of a Tier.
+     *
+     * <p>【中文说明】创建消费者端代理。用于在 TaskManager 上读取数据。
+     *
+     * @param tieredStorageConsumerSpecs 消费者规格列表（包含分区和子分区信息）
+     * @param shuffleDescriptors Shuffle 描述符列表（包含数据定位信息）
+     * @param nettyService Netty 网络服务
+     * @return Consumer 端代理实例
+     */
     TierConsumerAgent createConsumerAgent(
             List<TieredStorageConsumerSpec> tieredStorageConsumerSpecs,
             List<TierShuffleDescriptor> shuffleDescriptors,
             TieredStorageNettyService nettyService);
 
-    /** The unique identifier of this tier. */
+    /**
+     * The unique identifier of this tier.
+     *
+     * <p>【中文说明】获取此 Tier 的唯一标识符。
+     *
+     * <p>内置标识符：
+     * <ul>
+     *   <li>"memory" - 内存层</li>
+     *   <li>"disk" - 磁盘层</li>
+     *   <li>"remote" - 远程层</li>
+     * </ul>
+     *
+     * @return Tier 唯一标识字符串
+     */
     String identifier();
 }

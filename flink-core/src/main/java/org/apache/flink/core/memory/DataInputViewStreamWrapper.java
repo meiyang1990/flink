@@ -25,7 +25,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** Utility class that turns an {@link InputStream} into a {@link DataInputView}. */
+/** Utility class that turns an {@link InputStream} into a {@link DataInputView}.
+ *
+ * <p>把普通输入流适配成 DataInputView。
+ */
 @PublicEvolving
 public class DataInputViewStreamWrapper extends DataInputStream implements DataInputView {
 

@@ -24,7 +24,10 @@ import javax.annotation.Nonnull;
 
 import java.io.InputStream;
 
-/** Un-synchronized input stream using the given memory segment. */
+/** Un-synchronized input stream using the given memory segment.
+ *
+ * <p>基于 MemorySegment 提供带位置管理的输入流实现。
+ */
 public class MemorySegmentInputStreamWithPos extends InputStream {
 
     private MemorySegment segment;

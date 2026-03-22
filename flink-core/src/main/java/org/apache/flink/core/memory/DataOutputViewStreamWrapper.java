@@ -24,7 +24,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/** Utility class that turns an {@link OutputStream} into a {@link DataOutputView}. */
+/** Utility class that turns an {@link OutputStream} into a {@link DataOutputView}.
+ *
+ * <p>把普通输出流适配成 DataOutputView。
+ */
 @PublicEvolving
 public class DataOutputViewStreamWrapper extends DataOutputStream implements DataOutputView {
 

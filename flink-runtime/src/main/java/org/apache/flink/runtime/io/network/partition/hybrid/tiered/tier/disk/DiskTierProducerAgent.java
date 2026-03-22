@@ -204,20 +204,27 @@ public class DiskTierProducerAgent implements TierProducerAgent, NettyServicePro
         diskIOScheduler.connectionEstablished(subpartitionId, nettyConnectionWriter);
     }
 
+    /**
+     * 【中文说明】Netty 连接断开回调。通知 IOScheduler 停止对应连接的读取调度。
+     */
     @Override
     public void connectionBroken(NettyConnectionId connectionId) {
         diskIOScheduler.connectionBroken(connectionId);
     }
 
+    /**
+     * 【中文说明】关闭代理，刷新并关闭 DiskCacheManager。
+     */
     @Override
     public void close() {
         diskCacheManager.close();
     }
 
     // ------------------------------------------------------------------------
-    //  Internal Methods
+    //  Internal Methods（内部方法）
     // ------------------------------------------------------------------------
 
+    /** 发送 EndOfSegmentEvent 标记 Segment 结束 */
     private void emitEndOfSegmentEvent(int subpartitionId) {
         try {
             diskCacheManager.appendEndOfSegmentEvent(

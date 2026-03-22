@@ -45,6 +45,8 @@ import java.io.IOException;
  * }</pre>
  *
  * @param <E> The data type serialized / deserialized by this serializer.
+ *
+ * <p>定义带版本号的简单序列化器接口。
  */
 @PublicEvolving
 public interface SimpleVersionedSerializer<E> extends Versioned {

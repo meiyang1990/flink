@@ -32,6 +32,42 @@ import java.util.Optional;
 /**
  * The {@link TierConsumerAgent} is the consumer agent of each tier in tiered store, which could
  * read data from responding tier.
+ *
+ * <p>【中文说明】Tier 层消费者代理接口。
+ *
+ * <p>核心职责：
+ * <ul>
+ *   <li>从特定存储层（Memory/Disk/Remote）读取数据</li>
+ *   <li>支持按 Segment 粒度读取 Buffer</li>
+ *   <li>处理数据可用性通知，与上层 TieredStorageConsumerClient 协作</li>
+ * </ul>
+ *
+ * <p>读取流程图示：
+ * <pre>
+ *   TieredStorageConsumerClient
+ *           │
+ *           ▼
+ *   ┌───────────────────────────────────────┐
+ *   │     TierConsumerAgent（本接口）         │
+ *   │  ┌─────────────────────────────────┐  │
+ *   │  │ 1. setup() → 设置内存管理器      │  │
+ *   │  │ 2. start() → 启动代理           │  │
+ *   │  │ 3. peekNextBufferSubpartitionId │  │  ◄─ 查询下一个有数据的子分区
+ *   │  │ 4. getNextBuffer() → Buffer     │  │  ◄─ 获取数据
+ *   │  │ 5. close()                      │  │
+ *   │  └─────────────────────────────────┘  │
+ *   └───────────────────────────────────────┘
+ *           │
+ *           ▼
+ *   具体存储后端（MemoryTierConsumerAgent / DiskTierConsumerAgent / RemoteTierConsumerAgent）
+ * </pre>
+ *
+ * <p>关键设计要点：
+ * <ul>
+ *   <li>支持按 (partitionId, subpartitionId, segmentId) 三元组定位数据</li>
+ *   <li>通过 AvailabilityNotifier 实现异步数据就绪通知</li>
+ *   <li>TierShuffleDescriptor 动态更新以支持 Failover 场景</li>
+ * </ul>
  */
 public interface TierConsumerAgent {
 

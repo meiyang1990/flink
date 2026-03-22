@@ -27,6 +27,8 @@ import java.io.Serializable;
  * {@link org.apache.flink.api.common.io.InputFormat}s.
  *
  * @param <T> The type of the input splits created by the source.
+ *
+ * <p>为输入格式生成输入分片的源接口。
  */
 @Public
 public interface InputSplitSource<T extends InputSplit> extends Serializable {

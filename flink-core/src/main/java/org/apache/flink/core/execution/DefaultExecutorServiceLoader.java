@@ -37,6 +37,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * The default implementation of the {@link PipelineExecutorServiceLoader}. This implementation uses
  * Java service discovery to find the available {@link PipelineExecutorFactory executor factories}.
+ *
+ * <p>提供默认的作业执行器服务发现与加载实现。
  */
 @Internal
 public class DefaultExecutorServiceLoader implements PipelineExecutorServiceLoader {

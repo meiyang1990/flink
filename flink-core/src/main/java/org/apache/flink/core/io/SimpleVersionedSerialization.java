@@ -30,11 +30,15 @@ import java.util.List;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** Simple serialization / deserialization methods for the {@link SimpleVersionedSerializer}. */
+/** Simple serialization / deserialization methods for the {@link SimpleVersionedSerializer}.
+ *
+ * <p>提供基于版本号的简单序列化与反序列化工具方法。
+ */
 @PublicEvolving
 public class SimpleVersionedSerialization {
 
     /**
+     * 将版本号、数据长度和单个对象内容按固定布局写入输出视图。
      * Serializes the version and datum into a stream.
      *
      * <p>Data serialized via this method can be deserialized via {@link
@@ -95,6 +99,7 @@ public class SimpleVersionedSerialization {
     }
 
     /**
+     * 先读取版本号和数据长度，再按对应版本反序列化出单个对象。
      * Deserializes the version and datum from a stream.
      *
      * <p>This method deserializes data serialized via {@link

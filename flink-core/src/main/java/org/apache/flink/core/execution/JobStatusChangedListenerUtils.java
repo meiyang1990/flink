@@ -30,7 +30,10 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.configuration.DeploymentOptions.JOB_STATUS_CHANGED_LISTENERS;
 
-/** Util class for {@link JobStatusChangedListener}. */
+/** Util class for {@link JobStatusChangedListener}.
+ *
+ * <p>提供作业状态监听器的发现、创建和调用辅助方法。
+ */
 @Internal
 public final class JobStatusChangedListenerUtils {
     /**

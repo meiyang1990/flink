@@ -27,7 +27,10 @@ import java.io.UTFDataFormatException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-/** A simple and efficient deserializer for the {@link java.io.DataInput} interface. */
+/** A simple and efficient deserializer for the {@link java.io.DataInput} interface.
+ *
+ * <p>将二进制缓冲区包装成 DataInputView 的反序列化读取器。
+ */
 public class DataInputDeserializer implements DataInputView, java.io.Serializable {
 
     private static final byte[] EMPTY = new byte[0];

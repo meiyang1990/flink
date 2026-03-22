@@ -24,7 +24,10 @@ import org.apache.flink.api.common.JobStatus;
 
 import javax.annotation.Nullable;
 
-/** Default implementation for {@link JobExecutionStatusEvent}. */
+/** Default implementation for {@link JobExecutionStatusEvent}.
+ *
+ * <p>默认的作业执行状态事件实现，用于封装状态与时间戳信息。
+ */
 @Internal
 public class DefaultJobExecutionStatusEvent implements JobExecutionStatusEvent {
     private final JobID jobId;

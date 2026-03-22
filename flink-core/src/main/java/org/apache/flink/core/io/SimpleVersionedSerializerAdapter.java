@@ -29,6 +29,8 @@ import java.io.Serializable;
 /**
  * Adapter for {@link TypeSerializer} to {@link SimpleVersionedSerializer}. The implementation is
  * naive and should only be used for non-critical paths and tests.
+ *
+ * <p>把现有序列化器适配成 SimpleVersionedSerializer。
  */
 @Internal
 public class SimpleVersionedSerializerAdapter<T>

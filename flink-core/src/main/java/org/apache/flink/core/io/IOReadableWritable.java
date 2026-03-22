@@ -31,6 +31,8 @@ import java.io.IOException;
  *
  * <p>When implementing this Interface make sure that the implementing class has a default
  * (zero-argument) constructor!
+ *
+ * <p>定义对象与 DataInputView/DataOutputView 之间读写转换的基础接口。
  */
 @Public
 public interface IOReadableWritable {

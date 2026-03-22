@@ -31,16 +31,79 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-/** The master-side agent of a Tier. */
+/**
+ * The master-side agent of a Tier.
+ *
+ * <p>【中文说明】Tier 层 Master 端代理接口。
+ *
+ * <p>核心职责：
+ * <ul>
+ *   <li>管理作业级别的分区注册与注销</li>
+ *   <li>生成 TierShuffleDescriptor（包含数据定位信息）供消费者使用</li>
+ *   <li>支持状态快照与恢复（用于 Failover）</li>
+ *   <li>处理分区指标查询（如子分区大小）</li>
+ * </ul>
+ *
+ * <p>组件关系图示：
+ * <pre>
+ *   JobMaster / ShuffleMaster
+ *           │
+ *           ▼
+ *   ┌───────────────────────────────────────┐
+ *   │      TierMasterAgent（本接口）          │
+ *   │  ┌─────────────────────────────────┐  │
+ *   │  │ 1. registerJob()                │  │  ◄─ 作业注册
+ *   │  │ 2. addPartitionAndGetDescriptor │  │  ◄─ 分区注册，返回 Descriptor
+ *   │  │ 3. snapshotState/restoreState   │  │  ◄─ 状态管理
+ *   │  │ 4. releasePartition()           │  │  ◄─ 分区释放
+ *   │  │ 5. unregisterJob()              │  │  ◄─ 作业注销
+ *   │  └─────────────────────────────────┘  │
+ *   └───────────────────────────────────────┘
+ *           │
+ *           ▼
+ *   具体存储后端（MemoryTier 无 Master / DiskTier 无 Master / RemoteTierMasterAgent）
+ * </pre>
+ *
+ * <p>关键设计要点：
+ * <ul>
+ *   <li>TierShuffleDescriptor 是数据定位的核心，包含消费者连接生产者所需的所有信息</li>
+ *   <li>partitionInRemote() 标识分区是否存储在远程集群（而非 TaskManager 本地）</li>
+ *   <li>状态快照用于 HA 场景下的 Failover 恢复</li>
+ * </ul>
+ */
 public interface TierMasterAgent {
 
-    /** Register a job id with a {@link TierShuffleHandler}. */
+    /**
+     * Register a job id with a {@link TierShuffleHandler}.
+     *
+     * <p>【中文说明】注册作业。将 JobID 与 TierShuffleHandler 关联，用于后续的分区管理操作。
+     *
+     * @param jobID 作业唯一标识
+     * @param tierShuffleHandler 用于处理该 Tier 层 Shuffle 操作的处理器
+     */
     void registerJob(JobID jobID, TierShuffleHandler tierShuffleHandler);
 
-    /** Unregister a job id. */
+    /**
+     * Unregister a job id.
+     *
+     * <p>【中文说明】注销作业。作业完成或取消时调用，清理相关资源。
+     *
+     * @param jobID 作业唯一标识
+     */
     void unregisterJob(JobID jobID);
 
-    /** Add a new tiered storage partition and get the {@link TierShuffleDescriptor}. */
+    /**
+     * Add a new tiered storage partition and get the {@link TierShuffleDescriptor}.
+     *
+     * <p>【中文说明】添加新分区并获取 Shuffle 描述符。
+     *
+     * <p>这是分区注册的核心方法。返回的 TierShuffleDescriptor 包含消费者定位数据所需的信息。
+     *
+     * @param jobID 所属作业 ID
+     * @param numSubpartitions 子分区数量
+     * @param resultPartitionID 结果分区 ID
+     * @return TierShuffleDescriptor 包含数据定位信息的描述符
+     */
     TierShuffleDescriptor addPartitionAndGetShuffleDescriptor(
             JobID jobID, int numSubpartitions, ResultPartitionID resultPartitionID);
 

@@ -24,7 +24,10 @@ import org.apache.flink.configuration.description.InlineElement;
 
 import static org.apache.flink.configuration.description.TextElement.text;
 
-/** Describes the type in which a checkpoint should be taken. */
+/** Describes the type in which a checkpoint should be taken.
+ *
+ * <p>定义检查点在触发来源和语义上的类型划分。
+ */
 @PublicEvolving
 public enum CheckpointType implements DescribedEnum {
     CONFIGURED("The checkpoint type derived from the job config"),

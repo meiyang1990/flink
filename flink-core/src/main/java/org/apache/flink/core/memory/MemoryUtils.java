@@ -26,7 +26,10 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-/** Utility class for memory operations. */
+/** Utility class for memory operations.
+ *
+ * <p>提供底层内存访问相关的工具方法与常量。
+ */
 @Internal
 public class MemoryUtils {
 

@@ -27,11 +27,14 @@ import java.io.IOException;
  * This interface defines a view over some memory that can be used to sequentially read the contents
  * of the memory. The view is typically backed by one or more {@link
  * org.apache.flink.core.memory.MemorySegment}.
+ *
+ * <p>定义顺序读取内存内容的输入视图接口。
  */
 @Public
 public interface DataInputView extends DataInput {
 
     /**
+     * 确保精确跳过指定字节数，无法完成时直接抛出异常而不是部分成功返回。
      * Skips {@code numBytes} bytes of memory. In contrast to the {@link #skipBytes(int)} method,
      * this method always skips the desired number of bytes or throws an {@link
      * java.io.EOFException}.

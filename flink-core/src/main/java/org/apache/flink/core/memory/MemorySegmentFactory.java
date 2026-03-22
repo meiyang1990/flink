@@ -30,7 +30,10 @@ import java.nio.ByteBuffer;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
 
-/** A factory for memory segments ({@link MemorySegment}). */
+/** A factory for memory segments ({@link MemorySegment}).
+ *
+ * <p>负责创建不同来源和类型的 MemorySegment。
+ */
 @Internal
 public final class MemorySegmentFactory {
     private static final Logger LOG = LoggerFactory.getLogger(MemorySegmentFactory.class);

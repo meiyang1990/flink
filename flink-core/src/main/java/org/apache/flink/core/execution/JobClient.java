@@ -28,7 +28,10 @@ import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-/** A client that is scoped to a specific job. */
+/** A client that is scoped to a specific job.
+ *
+ * <p>提供对已提交作业进行查询、控制和取回结果的客户端接口。
+ */
 @PublicEvolving
 public interface JobClient {
 

@@ -20,7 +20,10 @@ package org.apache.flink.core.io;
 
 import org.apache.flink.annotation.Public;
 
-/** A generic input split that has only a partition number. */
+/** A generic input split that has only a partition number.
+ *
+ * <p>通用的输入分片实现，用于描述并行读取任务的分片编号。
+ */
 @Public
 public class GenericInputSplit implements InputSplit, java.io.Serializable {
 

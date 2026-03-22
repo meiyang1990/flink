@@ -28,6 +28,8 @@ import java.util.Arrays;
 /**
  * Un-synchronized stream similar to Java's ByteArrayOutputStream that also exposes the current
  * position.
+ *
+ * <p>在字节数组输出流之上维护当前位置，便于追加写入与复用缓冲区。
  */
 @Internal
 public class ByteArrayOutputStreamWithPos extends OutputStream {

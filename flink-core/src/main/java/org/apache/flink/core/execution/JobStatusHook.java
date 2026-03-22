@@ -36,6 +36,8 @@ import java.io.Serializable;
  *     streamGraph.setJobName("my_flink");
  *     env.execute(streamGraph);
  * </pre>
+ *
+ * <p>允许在作业生命周期关键节点挂接扩展逻辑的钩子接口。
  */
 @Internal
 public interface JobStatusHook extends Serializable {

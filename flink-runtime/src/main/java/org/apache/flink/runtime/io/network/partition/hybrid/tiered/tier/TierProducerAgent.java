@@ -72,6 +72,12 @@ public interface TierProducerAgent extends AutoCloseable {
      *
      * <p>Note this only releases resources directly hold by the agent, which excludes resources
      * managed by the resource registry.
+     *
+     * <p>【中文说明】关闭代理并释放资源。
+     *
+     * <p>注意：此方法仅释放代理直接持有的资源（如内部缓存），
+     * 不包括通过 {@link org.apache.flink.runtime.io.network.partition.hybrid.tiered.storage.TieredStorageResourceRegistry}
+     * 注册的资源，那些资源由 Registry 统一管理释放。
      */
     void close();
 }

@@ -28,6 +28,8 @@ import java.io.Serializable;
  *
  * <p>Input splits are transferred in serialized form via the messages, so they need to be
  * serializable as defined by {@link java.io.Serializable}.
+ *
+ * <p>表示可被并行处理的数据输入分片。
  */
 @Public
 public interface InputSplit extends Serializable {

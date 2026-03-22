@@ -31,6 +31,8 @@ import java.util.Optional;
  * between serialization versions. Concrete subclasses should typically override the {@link
  * #write(DataOutputView)} and {@link #read(DataInputView)}, thereby calling super to ensure version
  * checking.
+ *
+ * <p>支持带版本头读写的 IOReadableWritable 基类。
  */
 @Internal
 public abstract class VersionedIOReadableWritable implements IOReadableWritable, Versioned {

@@ -21,7 +21,10 @@ package org.apache.flink.core.execution;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.JobID;
 
-/** Basic job status event. */
+/** Basic job status event.
+ *
+ * <p>封装作业状态变化时的上下文信息。
+ */
 @PublicEvolving
 public interface JobStatusChangedEvent {
 

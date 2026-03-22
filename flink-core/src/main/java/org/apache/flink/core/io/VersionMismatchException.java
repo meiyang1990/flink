@@ -22,7 +22,10 @@ import org.apache.flink.annotation.PublicEvolving;
 
 import java.io.IOException;
 
-/** This exception signals that incompatible versions have been found during serialization. */
+/** This exception signals that incompatible versions have been found during serialization.
+ *
+ * <p>表示读取数据时发现版本不匹配的异常。
+ */
 @PublicEvolving
 public class VersionMismatchException extends IOException {
 

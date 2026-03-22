@@ -29,6 +29,8 @@ import javax.annotation.Nullable;
  *
  * <p>It is highly recommended NOT to perform any blocking operation inside the callbacks. If you
  * block the thread the invoker of environment execute methods is possibly blocked.
+ *
+ * <p>监听作业提交成功或失败回调的接口。
  */
 @PublicEvolving
 public interface JobListener {

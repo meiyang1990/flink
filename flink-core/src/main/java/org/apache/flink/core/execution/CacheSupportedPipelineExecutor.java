@@ -24,7 +24,10 @@ import org.apache.flink.util.AbstractID;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-/** The pipeline executor that support caching intermediate dataset. */
+/** The pipeline executor that support caching intermediate dataset.
+ *
+ * <p>为支持缓存复用的作业执行器暴露扩展能力。
+ */
 @Internal
 public interface CacheSupportedPipelineExecutor extends PipelineExecutor {
 

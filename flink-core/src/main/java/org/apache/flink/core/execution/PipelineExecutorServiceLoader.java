@@ -26,6 +26,8 @@ import java.util.stream.Stream;
 /**
  * An interface to be implemented by the entity responsible for finding the correct {@link
  * PipelineExecutor} to execute a given {@link org.apache.flink.api.dag.Pipeline}.
+ *
+ * <p>负责发现并选择可用 Pipeline 执行器工厂的服务接口。
  */
 @Internal
 public interface PipelineExecutorServiceLoader {

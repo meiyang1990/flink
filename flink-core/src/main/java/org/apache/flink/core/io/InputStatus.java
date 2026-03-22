@@ -34,6 +34,8 @@ import org.apache.flink.annotation.PublicEvolving;
  *
  * <p>When the input returns {@link InputStatus#END_OF_INPUT}, then no data will be available again
  * from this input. It has reached the end of its bounded data.
+ *
+ * <p>表示流式输入当前可用数据状态的枚举。
  */
 @PublicEvolving
 public enum InputStatus {

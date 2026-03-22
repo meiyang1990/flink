@@ -27,6 +27,8 @@ import static org.apache.flink.configuration.description.TextElement.text;
 
 /**
  * Defines state files ownership when Flink restore from a given savepoint or retained checkpoint.
+ *
+ * <p>定义恢复时如何接管已有状态产物的策略。
  */
 @PublicEvolving
 public enum RecoveryClaimMode implements DescribedEnum {

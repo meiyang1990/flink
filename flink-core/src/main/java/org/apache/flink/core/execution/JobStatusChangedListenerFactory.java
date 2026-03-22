@@ -23,7 +23,10 @@ import org.apache.flink.configuration.Configuration;
 
 import java.util.concurrent.Executor;
 
-/** Factory for job status changed listener. */
+/** Factory for job status changed listener.
+ *
+ * <p>用于创建作业状态变化监听器实例的工厂接口。
+ */
 @PublicEvolving
 public interface JobStatusChangedListenerFactory {
 

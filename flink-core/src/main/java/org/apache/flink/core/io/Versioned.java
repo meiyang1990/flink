@@ -23,6 +23,8 @@ import org.apache.flink.annotation.PublicEvolving;
 /**
  * This interface is implemented by classes that provide a version number. Versions numbers can be
  * used to differentiate between evolving classes.
+ *
+ * <p>为对象暴露版本号的基础接口。
  */
 @PublicEvolving
 public interface Versioned {

@@ -31,6 +31,8 @@ import org.apache.flink.annotation.Public;
  * simpler fashion that typically encounters some duplicates upon recovery ({@link #AT_LEAST_ONCE})
  *
  * <p>Also called "CheckpointingConsistencyMode" everywhere in APIs.
+ *
+ * <p>定义检查点的一致性语义模式。
  */
 @Public
 public enum CheckpointingMode {

@@ -33,6 +33,8 @@ import java.util.Arrays;
  * A {@link VersionedIOReadableWritable} which allows to differentiate whether the previous data was
  * versioned with a {@link VersionedIOReadableWritable}. This can be used if previously written data
  * was not versioned, and is to be migrated to a versioned format.
+ *
+ * <p>为后置版本头格式提供读写支持的基类。
  */
 @Internal
 public abstract class PostVersionedIOReadableWritable extends VersionedIOReadableWritable {

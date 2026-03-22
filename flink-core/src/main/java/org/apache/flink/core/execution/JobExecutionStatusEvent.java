@@ -23,7 +23,10 @@ import org.apache.flink.api.common.JobStatus;
 
 import javax.annotation.Nullable;
 
-/** Job execution status event. */
+/** Job execution status event.
+ *
+ * <p>描述作业执行状态变化的事件抽象。
+ */
 @PublicEvolving
 public interface JobExecutionStatusEvent extends JobStatusChangedEvent {
     /** Old status for job. */

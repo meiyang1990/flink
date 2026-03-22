@@ -27,7 +27,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-/** A simple and efficient serializer for the {@link java.io.DataOutput} interface. */
+/** A simple and efficient serializer for the {@link java.io.DataOutput} interface.
+ *
+ * <p>基于可扩展字节缓冲区实现高效的数据输出序列化器。
+ */
 public class DataOutputSerializer implements DataOutputView, MemorySegmentWritable {
 
     private byte[] buffer;

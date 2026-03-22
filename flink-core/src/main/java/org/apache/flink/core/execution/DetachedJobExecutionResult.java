@@ -28,6 +28,8 @@ import java.util.Map;
 /**
  * The {@link JobExecutionResult} returned by a context environment when executing a job in detached
  * mode.
+ *
+ * <p>表示 detached 模式下返回给调用方的作业执行结果占位对象。
  */
 @Internal
 public final class DetachedJobExecutionResult extends JobExecutionResult {

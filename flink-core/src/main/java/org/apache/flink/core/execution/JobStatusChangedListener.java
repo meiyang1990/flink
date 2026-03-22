@@ -23,6 +23,8 @@ import org.apache.flink.annotation.PublicEvolving;
 /**
  * When job is created or its status is changed, Flink will generate job event and notify job status
  * changed listener.
+ *
+ * <p>接收作业状态变化通知的监听器接口。
  */
 @PublicEvolving
 public interface JobStatusChangedListener {

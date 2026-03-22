@@ -24,6 +24,8 @@ import org.apache.flink.configuration.Configuration;
 /**
  * A factory for selecting and instantiating the adequate {@link PipelineExecutor} based on a
  * provided {@link Configuration}.
+ *
+ * <p>根据配置创建具体 Pipeline 执行器的工厂接口。
  */
 @Internal
 public interface PipelineExecutorFactory {

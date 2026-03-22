@@ -36,6 +36,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>This should not be used as a general {@link TypeSerializer}. It's meant to be used by internal
  * operators that need to work with both {@link SimpleVersionedSerializer} and {@link
  * TypeSerializer}.
+ *
+ * <p>把 SimpleVersionedSerializer 包装成 TypeSerializer 代理。
  */
 @Internal
 public class SimpleVersionedSerializerTypeSerializerProxy<T> extends TypeSerializer<T> {

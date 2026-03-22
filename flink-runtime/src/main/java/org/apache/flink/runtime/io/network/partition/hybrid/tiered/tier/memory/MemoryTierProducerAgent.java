@@ -203,6 +203,7 @@ public class MemoryTierProducerAgent implements TierProducerAgent, NettyServiceP
         }
     }
 
+    /** 将完成的 Buffer 添加到对应子分区的发送队列 */
     private void addFinishedBuffer(Buffer finishedBuffer, int subpartitionId) {
         subpartitionProducerAgents[subpartitionId].addFinishedBuffer(finishedBuffer);
     }

@@ -23,6 +23,8 @@ import org.apache.flink.annotation.Internal;
 /**
  * Un-synchronized stream similar to Java's ByteArrayInputStream that also exposes the current
  * position.
+ *
+ * <p>在字节数组输入流之上维护当前位置，便于按偏移读取。
  */
 @Internal
 public class ByteArrayInputStreamWithPos extends MemorySegmentInputStreamWithPos {
